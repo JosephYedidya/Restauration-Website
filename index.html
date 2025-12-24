@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Bistro Rive - Cuisine contemporaine, livraison et réservation en ligne" />
+  <title>Bistro Rive — Restaurant & Livraison</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="./Style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="fade-in">
+      <div class="brand">
+        <div class="logo"><strong>BR</strong></div>
+        <div class="brand-text">
+          <h1>Bistro Rive</h1>
+          <div class="brand-subtitle">Cuisine contemporaine · Livraison & réservation</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#menu">Menu</a>
+        <a href="#favorites">Favoris</a>
+        <a href="#gallery">Galerie</a>
+        <a href="#contact">Contact</a>
+        <button class="cart-toggle" id="cartToggle" aria-label="Ouvrir le panier">
+          <span class="cart-icon">🛒</span>
+          <span class="cart-badge-nav" id="cartBadgeNav">0</span>
+        </button>
+        <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="hero-card fade-in stagger-1">
+        <h2>Saveurs d'aujourd'hui, vibes d'hier.</h2>
+        <p>Un menu confectionné pour plaire aux yeux et aux papilles. Explorez, commandez et partagez des moments inoubliables.</p>
+
+        <div class="search">
+          <input id="search" type="text" placeholder="Rechercher un plat, ingrédient ou catégorie..." aria-label="Rechercher dans le menu">
+          <button id="searchBtn" aria-label="Lancer la recherche">Rechercher</button>
+        </div>
+
+        <div class="filters" id="filters" role="group" aria-label="Filtres de catégories">
+          <!-- chips générés dynamiquement -->
+        </div>
+      </div>
+
+      <div class="hero-media fade-in stagger-2">
+        <img id="heroImg" src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=600&fit=crop&q=80" alt="Plat vedette du restaurant" loading="eager">
+      </div>
+    </section>
+
+    <section id="menu">
+      <h2 class="section-title">Notre Menu</h2>
+      <div class="grid" id="menuGrid">
+        <!-- cards générées dynamiquement -->
+      </div>
+    </section>
+
+    <section id="favorites" class="favorites-section" style="display: none;">
+      <h2 class="section-title">Mes Favoris ❤️</h2>
+      <div class="grid" id="favoritesGrid">
+        <!-- cards favorites -->
+      </div>
+    </section>
+
+    <section id="gallery">
+      <h2 class="section-title">Galerie</h2>
+      <div class="gallery-grid">
+        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop&q=80" alt="Plat gastronomique" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop&q=80" alt="Pizza artisanale" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&h=400&fit=crop&q=80" alt="Cocktail signature" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&h=400&fit=crop&q=80" alt="Dessert gourmand" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop&q=80" alt="Ambiance restaurant" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop&q=80" alt="Salade colorée" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=400&fit=crop&q=80" alt="Salade fraîche" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1476124369491-b79e5ff2f1f7?w=400&h=400&fit=crop&q=80" alt="Risotto crémeux" loading="lazy">
+      </div>
+    </section>
+
+    <footer id="contact">
+      <div class="footer-links">Réservations · Livraison · Événements privés</div>
+      <div>© 2025 Bistro Rive — Design moderne & élégant</div>
+    </footer>
+  </div>
+
+  <aside class="cart hidden" id="cart" role="complementary" aria-live="polite" aria-label="Panier d'achat">
+    <h4>
+      Panier
+      <span class="cart-badge" id="cartBadge">0</span>
+    </h4>
+    <div class="cart-list" id="cartList">
+      <div class="cart-empty">Votre panier est vide</div>
+    </div>
+    <div class="checkout">
+      <div>
+        <div class="checkout-total">Total</div>
+        <span class="checkout-amount" id="total">0 FCFA</span>
+      </div>
+      <button class="btn" id="checkoutBtn" aria-label="Finaliser la commande">Commander</button>
+    </div>
+  </aside>
+
+  <template id="cardTpl">
+    <article class="card fade-in">
+      <div class="card-img-wrapper">
+        <img data-role="img" alt="" loading="lazy">
+        <button class="favorite-btn" data-role="favorite" aria-label="Ajouter aux favoris">♡</button>
+        <span class="card-tag" data-role="tag"></span>
+      </div>
+      <div class="card-content">
+        <div class="meta">
+          <h3 data-role="title"></h3>
+          <div class="price" data-role="price"></div>
+        </div>
+        <p data-role="desc"></p>
+        <div class="card-actions">
+          <button class="btn" data-role="add" aria-label="Ajouter au panier">Ajouter</button>
+          <button class="chip btn-secondary" data-role="detail" aria-label="Voir les détails">Détails</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-content">
+      <button class="lightbox-close" id="lightboxClose">×</button>
+      <button class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</button>
+      <button class="lightbox-nav lightbox-next" id="lightboxNext">›</button>
+      <img id="lightboxImg" src="" alt="">
+    </div>
+  </div>
+
+ <script src="./Script.js"></script>
+</body>
+</html>

@@ -1,0 +1,732 @@
+  // Configuration du menu
+  const menuData = [
+    {id: 1, title: 'Tartare de saumon', desc: 'Saumon frais, citron vert, ciboulette, huile d\'olive', price: 8200, tag: 'Poisson', img: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=600&h=400&fit=crop&q=80'},
+    {id: 2, title: 'Burger signature', desc: 'Bœuf Angus, cheddar, sauce maison, frites croustillantes', price: 7200, tag: 'Viande', img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80'},
+    {id: 3, title: 'Pizza au feu de bois', desc: 'Tomates San Marzano, mozzarella di bufala, basilic frais', price: 6200, tag: 'Végétarien', img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop&q=80'},
+    {id: 4, title: 'Salade quinoa & avocat', desc: 'Quinoa bio, avocat, graines, vinaigrette au miel', price: 5500, tag: 'Sain', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop&q=80'},
+    {id: 5, title: 'Risotto champignons', desc: 'Arborio, champignons sauvages, parmesan affiné', price: 8500, tag: 'Végétarien', img: 'https://images.unsplash.com/photo-1476124369491-b79e5ff2f1f7?w=600&h=400&fit=crop&q=80'},
+    {id: 6, title: 'Ceviche du jour', desc: 'Poisson blanc mariné, coriandre fraîche, piment doux', price: 9200, tag: 'Poisson', img: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=600&h=400&fit=crop&q=80'},
+    {id: 7, title: 'Steak frites', desc: 'Entrecôte, beurre maître d\'hôtel, frites maison', price: 11800, tag: 'Viande', img: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&h=400&fit=crop&q=80'},
+    {id: 8, title: 'Tiramisu classique', desc: 'Mascarpone, café arabica, cacao pur', price: 4200, tag: 'Dessert', img: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=600&h=400&fit=crop&q=80'},
+    {id: 9, title: 'Smoothie bowl', desc: 'Fruits frais de saison, granola maison, graines de chia', price: 4600, tag: 'Sain', img: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&h=400&fit=crop&q=80'}
+  ];
+
+  // État global
+  const state = {
+    menu: menuData,
+    cart: [],
+    favorites: [],
+    currentFilter: 'Tous',
+    cartOpen: false
+  };
+
+  // Utilitaires
+  const utils = {
+    formatCurrency: (amount) => {
+      const formattedAmount = new Intl.NumberFormat('fr-FR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(Number(amount));
+      return `${formattedAmount} FCFA`;
+    },
+    
+    debounce: (func, wait) => {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+  };
+
+  // Gestion des filtres
+  const filterManager = {
+    init() {
+      const tags = ['Tous', ...new Set(menuData.map(item => item.tag))];
+      const filtersEl = document.getElementById('filters');
+      
+      tags.forEach(tag => {
+        const button = document.createElement('button');
+        button.className = 'chip' + (tag === 'Tous' ? ' active' : '');
+        button.textContent = tag;
+        button.setAttribute('aria-pressed', tag === 'Tous');
+        
+        button.addEventListener('click', () => {
+          this.setActiveFilter(tag);
+          menuManager.render(this.getFilteredMenu(tag));
+        });
+        
+        filtersEl.appendChild(button);
+      });
+    },
+    
+    setActiveFilter(tag) {
+      state.currentFilter = tag;
+      document.querySelectorAll('.filters .chip').forEach(chip => {
+        const isActive = chip.textContent === tag;
+        chip.classList.toggle('active', isActive);
+        chip.setAttribute('aria-pressed', isActive);
+      });
+    },
+    
+    getFilteredMenu(tag) {
+      return tag === 'Tous' 
+        ? state.menu 
+        : state.menu.filter(item => item.tag === tag);
+    }
+  };
+
+  // Gestion du menu
+  const menuManager = {
+    render(items, targetGrid = 'menuGrid') {
+      const menuGrid = document.getElementById(targetGrid);
+      const template = document.getElementById('cardTpl');
+      
+      menuGrid.innerHTML = '';
+      
+      if (items.length === 0 && targetGrid === 'favoritesGrid') {
+        menuGrid.innerHTML = `
+          <div class="favorites-empty" style="grid-column: 1/-1;">
+            <div class="favorites-empty-icon">💔</div>
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun favori</div>
+            <div>Ajoutez des plats à vos favoris en cliquant sur ❤️</div>
+          </div>
+        `;
+        return;
+      }
+      
+      items.forEach((item, index) => {
+        const clone = template.content.cloneNode(true);
+        
+        const img = clone.querySelector('[data-role="img"]');
+        img.src = item.img;
+        img.alt = item.title;
+        
+        // Gestion d'erreur pour les images
+        img.onerror = function() {
+          this.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop&q=80';
+          this.alt = 'Image non disponible';
+        };
+        
+        // Bouton favori
+        const favoriteBtn = clone.querySelector('[data-role="favorite"]');
+        const isFavorite = state.favorites.includes(item.id);
+        favoriteBtn.textContent = isFavorite ? '♥' : '♡';
+        favoriteBtn.classList.toggle('active', isFavorite);
+        favoriteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          favoritesManager.toggle(item.id);
+        });
+        
+        clone.querySelector('[data-role="tag"]').textContent = item.tag;
+        clone.querySelector('[data-role="title"]').textContent = item.title;
+        clone.querySelector('[data-role="desc"]').textContent = item.desc;
+        clone.querySelector('[data-role="price"]').textContent = utils.formatCurrency(item.price);
+        
+        const addBtn = clone.querySelector('[data-role="add"]');
+        addBtn.addEventListener('click', () => cartManager.addItem(item));
+        
+        const detailBtn = clone.querySelector('[data-role="detail"]');
+        detailBtn.addEventListener('click', () => this.showDetails(item));
+        
+        // Animation en cascade
+        const card = clone.querySelector('.card');
+        card.style.animationDelay = `${index * 0.05}s`;
+        
+        menuGrid.appendChild(clone);
+      });
+    },
+    
+    showDetails(item) {
+      const heroImg = document.getElementById('heroImg');
+      const previousSrc = heroImg.src;
+      
+      // Animation de changement d'image
+      heroImg.style.opacity = '0.5';
+      setTimeout(() => {
+        heroImg.src = item.img;
+        heroImg.style.opacity = '1';
+      }, 200);
+      
+      // Restaurer l'image après 4 secondes
+      setTimeout(() => {
+        heroImg.style.opacity = '0.5';
+        setTimeout(() => {
+          heroImg.src = previousSrc;
+          heroImg.style.opacity = '1';
+        }, 200);
+      }, 4000);
+      
+      // Message de détails
+      const message = `${item.title}\n\n${item.desc}\n\nPrix: ${utils.formatCurrency(item.price)}\nCatégorie: ${item.tag}`;
+      alert(message);
+    }
+  };
+
+  // Gestion des favoris
+  const favoritesManager = {
+    init() {
+      try {
+        const savedFavorites = localStorage.getItem('bistro_favorites');
+        if (savedFavorites) {
+          state.favorites = JSON.parse(savedFavorites);
+          this.updateVisibility();
+        }
+      } catch (e) {
+        console.warn('Impossible de charger les favoris');
+      }
+    },
+
+    save() {
+      try {
+        localStorage.setItem('bistro_favorites', JSON.stringify(state.favorites));
+      } catch (e) {
+        console.warn('Impossible de sauvegarder les favoris');
+      }
+    },
+
+    toggle(itemId) {
+      const index = state.favorites.indexOf(itemId);
+      const item = menuData.find(i => i.id === itemId);
+      
+      if (index > -1) {
+        state.favorites.splice(index, 1);
+        cartManager.showToast(`${item.title} retiré des favoris`, 'info');
+      } else {
+        state.favorites.push(itemId);
+        cartManager.showToast(`${item.title} ajouté aux favoris`, 'success');
+      }
+      
+      this.save();
+      this.updateVisibility();
+      
+      // Re-render les grilles pour mettre à jour les icônes
+      menuManager.render(filterManager.getFilteredMenu(state.currentFilter));
+      this.renderFavorites();
+    },
+
+    renderFavorites() {
+      const favoriteItems = menuData.filter(item => state.favorites.includes(item.id));
+      menuManager.render(favoriteItems, 'favoritesGrid');
+    },
+
+    updateVisibility() {
+      const favSection = document.getElementById('favorites');
+      if (state.favorites.length > 0) {
+        favSection.style.display = 'block';
+      } else {
+        favSection.style.display = 'none';
+      }
+    }
+  };
+
+  // Gestion du panier
+  const cartManager = {
+    init() {
+      // Charger le panier sauvegardé
+      try {
+        const savedCart = localStorage.getItem('bistro_cart');
+        if (savedCart) {
+          state.cart = JSON.parse(savedCart);
+          this.render();
+        }
+      } catch (e) {
+        console.warn('Impossible de charger le panier sauvegardé');
+      }
+
+      // Charger l'état du panier (ouvert/fermé)
+      try {
+        const savedCartState = localStorage.getItem('bistro_cart_state');
+        if (savedCartState) {
+          state.cartOpen = JSON.parse(savedCartState);
+          this.updateCartVisibility();
+        }
+      } catch (e) {
+        console.warn('Impossible de charger l\'état du panier');
+      }
+
+      // Event listener pour le bouton panier
+      document.getElementById('cartToggle').addEventListener('click', () => {
+        this.toggleCart();
+      });
+    },
+
+    saveCart() {
+      try {
+        localStorage.setItem('bistro_cart', JSON.stringify(state.cart));
+      } catch (e) {
+        console.warn('Impossible de sauvegarder le panier');
+      }
+    },
+
+    addItem(item) {
+      const existingItem = state.cart.find(cartItem => cartItem.id === item.id);
+      
+      if (existingItem) {
+        existingItem.qty++;
+      } else {
+        state.cart.push({ ...item, qty: 1 });
+      }
+      
+      this.render();
+      this.animateCartBadge();
+      this.saveCart();
+      this.showToast(`${item.title} ajouté au panier`, 'success');
+    },
+    
+    removeItem(id) {
+      const item = state.cart.find(cartItem => cartItem.id === id);
+      const index = state.cart.findIndex(cartItem => cartItem.id === id);
+      if (index > -1) {
+        state.cart.splice(index, 1);
+        if (item) {
+          this.showToast(`${item.title} retiré du panier`, 'info');
+        }
+      }
+      this.render();
+      this.saveCart();
+    },
+    
+    updateQuantity(id, delta) {
+      const item = state.cart.find(cartItem => cartItem.id === id);
+      
+      if (!item) return;
+      
+      item.qty += delta;
+      
+      if (item.qty < 1) {
+        this.removeItem(id);
+      } else {
+        this.render();
+        this.saveCart();
+      }
+    },
+    
+    render() {
+      const cartList = document.getElementById('cartList');
+      const totalEl = document.getElementById('total');
+      const badgeEl = document.getElementById('cartBadge');
+      
+      cartList.innerHTML = '';
+      
+      if (state.cart.length === 0) {
+        cartList.innerHTML = '<div class="cart-empty">Votre panier est vide</div>';
+        totalEl.textContent = '0 FCFA';
+        badgeEl.textContent = '0';
+        return;
+      }
+      
+      let total = 0;
+      let totalItems = 0;
+      
+      state.cart.forEach(item => {
+        total += item.price * item.qty;
+        totalItems += item.qty;
+        
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+        
+        cartItem.innerHTML = `
+          <img src="${item.img}" alt="${item.title}">
+          <div class="cart-item-info">
+            <div class="cart-item-title">${item.title}</div>
+            <div class="cart-item-price">${item.qty} × ${utils.formatCurrency(item.price)}</div>
+          </div>
+          <div class="cart-item-controls">
+            <div class="cart-item-total">${utils.formatCurrency(item.price * item.qty)}</div>
+            <div class="cart-item-buttons">
+              <button class="cart-btn" onclick="cartManager.updateQuantity(${item.id}, -1)" aria-label="Diminuer la quantité">−</button>
+              <button class="cart-btn" onclick="cartManager.updateQuantity(${item.id}, 1)" aria-label="Augmenter la quantité">+</button>
+              <button class="cart-btn" onclick="cartManager.removeItem(${item.id})" aria-label="Retirer du panier">✕</button>
+            </div>
+          </div>
+        `;
+        
+        cartList.appendChild(cartItem);
+      });
+      
+      totalEl.textContent = utils.formatCurrency(total);
+      badgeEl.textContent = totalItems;
+      
+      // Mettre à jour le badge de navigation
+      this.updateCartBadge();
+    },
+    
+    animateCartBadge() {
+      const badge = document.getElementById('cartBadge');
+      const badgeNav = document.getElementById('cartBadgeNav');
+      
+      if (badge) {
+        badge.style.transform = 'scale(1.3)';
+        setTimeout(() => {
+          badge.style.transform = 'scale(1)';
+        }, 200);
+      }
+      
+      if (badgeNav) {
+        badgeNav.style.transform = 'scale(1.3)';
+        setTimeout(() => {
+          badgeNav.style.transform = 'scale(1)';
+        }, 200);
+      }
+    },
+    
+    checkout() {
+      if (state.cart.length === 0) {
+        this.showToast('Votre panier est vide. Ajoutez des plats pour commander.', 'warning');
+        return;
+      }
+      
+      let summary = '🛒 Récapitulatif de votre commande\n\n';
+      
+      state.cart.forEach(item => {
+        summary += `${item.qty} × ${item.title}\n`;
+        summary += `   ${utils.formatCurrency(item.price * item.qty)}\n\n`;
+      });
+      
+      const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      summary += `━━━━━━━━━━━━━━━━━━━━\n`;
+      summary += `Total: ${utils.formatCurrency(total)}\n\n`;
+      summary += `✓ Merci pour votre commande !\n`;
+      summary += `Temps de préparation estimé : 25-35 min`;
+      
+      alert(summary);
+      
+      // Vider le panier après commande
+      state.cart = [];
+      this.render();
+      this.saveCart();
+      this.showToast('Commande validée avec succès !', 'success');
+    },
+
+    toggleCart() {
+      state.cartOpen = !state.cartOpen;
+      this.updateCartVisibility();
+      this.saveCartState();
+    },
+
+    updateCartVisibility() {
+      const cart = document.getElementById('cart');
+      const cartToggle = document.getElementById('cartToggle');
+      
+      if (state.cartOpen) {
+        cart.classList.remove('hidden');
+        cartToggle.classList.add('active');
+        cartToggle.setAttribute('aria-label', 'Fermer le panier');
+      } else {
+        cart.classList.add('hidden');
+        cartToggle.classList.remove('active');
+        cartToggle.setAttribute('aria-label', 'Ouvrir le panier');
+      }
+    },
+
+    saveCartState() {
+      try {
+        localStorage.setItem('bistro_cart_state', JSON.stringify(state.cartOpen));
+      } catch (e) {
+        console.warn('Impossible de sauvegarder l\'état du panier');
+      }
+    },
+
+    updateCartBadge() {
+      const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+      const badgeNav = document.getElementById('cartBadgeNav');
+      
+      if (badgeNav) {
+        badgeNav.textContent = totalItems;
+        
+        // Animation du badge
+        badgeNav.style.transform = 'scale(1.3)';
+        setTimeout(() => {
+          badgeNav.style.transform = 'scale(1)';
+        }, 200);
+      }
+    },
+
+    showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = 'toast toast-' + type;
+      
+      const icon = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+      }[type] || 'ℹ';
+      
+      toast.innerHTML = `<span class="toast-icon">${icon}</span> ${message}`;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.classList.add('toast-show'), 10);
+      
+      setTimeout(() => {
+        toast.classList.remove('toast-show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  };
+
+  // Gestion de la recherche
+  const searchManager = {
+    init() {
+      const searchInput = document.getElementById('search');
+      const searchBtn = document.getElementById('searchBtn');
+      
+      const performSearch = () => {
+        const query = searchInput.value.trim().toLowerCase();
+        
+        if (!query) {
+          filterManager.setActiveFilter('Tous');
+          menuManager.render(state.menu);
+          return;
+        }
+        
+        const results = state.menu.filter(item => {
+          const searchText = `${item.title} ${item.desc} ${item.tag}`.toLowerCase();
+          return searchText.includes(query);
+        });
+        
+        // Désactiver les filtres lors d'une recherche
+        document.querySelectorAll('.filters .chip').forEach(chip => {
+          chip.classList.remove('active');
+          chip.setAttribute('aria-pressed', 'false');
+        });
+        
+        menuManager.render(results);
+        
+        // Message si aucun résultat
+        if (results.length === 0) {
+          document.getElementById('menuGrid').innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted);">
+              <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+              <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun résultat trouvé</div>
+              <div>Essayez avec d'autres mots-clés</div>
+            </div>
+          `;
+        }
+      };
+      
+      searchBtn.addEventListener('click', performSearch);
+      searchInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+      
+      // Recherche en temps réel (debounced)
+      searchInput.addEventListener('input', utils.debounce(performSearch, 500));
+    }
+  };
+
+  // Gestion de la lightbox
+  const lightboxManager = {
+    images: [],
+    currentIndex: 0,
+
+    init() {
+      const galleryImages = document.querySelectorAll('.gallery-grid img');
+      this.images = Array.from(galleryImages);
+      
+      galleryImages.forEach((img, index) => {
+        img.addEventListener('click', () => this.open(index));
+      });
+
+      document.getElementById('lightboxClose').addEventListener('click', () => this.close());
+      document.getElementById('lightboxPrev').addEventListener('click', () => this.prev());
+      document.getElementById('lightboxNext').addEventListener('click', () => this.next());
+      
+      // Fermer avec Échap
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') this.close();
+        if (e.key === 'ArrowLeft') this.prev();
+        if (e.key === 'ArrowRight') this.next();
+      });
+
+      // Fermer en cliquant sur le fond
+      document.getElementById('lightbox').addEventListener('click', (e) => {
+        if (e.target.id === 'lightbox') this.close();
+      });
+    },
+
+    open(index) {
+      this.currentIndex = index;
+      this.show();
+    },
+
+    show() {
+      const lightbox = document.getElementById('lightbox');
+      const img = document.getElementById('lightboxImg');
+      
+      img.src = this.images[this.currentIndex].src;
+      img.alt = this.images[this.currentIndex].alt;
+      
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    },
+
+    close() {
+      const lightbox = document.getElementById('lightbox');
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+    },
+
+    next() {
+      this.currentIndex = (this.currentIndex + 1) % this.images.length;
+      this.show();
+    },
+
+    prev() {
+      this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
+      this.show();
+    }
+  };
+
+  // Initialisation de l'application
+  const app = {
+    init() {
+      filterManager.init();
+      searchManager.init();
+      cartManager.init();
+      favoritesManager.init();
+      lightboxManager.init();
+      menuManager.render(state.menu);
+      favoritesManager.renderFavorites();
+      cartManager.render();
+      themeManager.init();
+      this.initScrollToTop();
+      
+      // Gestion du bouton de commande
+      document.getElementById('checkoutBtn').addEventListener('click', () => {
+        cartManager.checkout();
+      });
+      
+      // Smooth scroll pour la navigation
+      document.querySelectorAll('nav a').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const targetId = link.getAttribute('href');
+          const target = document.querySelector(targetId);
+          
+          if (target) {
+            target.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+          }
+        });
+      });
+      
+      console.log('🍽️ Bistro Rive - Application initialisée avec succès');
+    },
+
+    initScrollToTop() {
+      const scrollBtn = document.createElement('button');
+      scrollBtn.className = 'scroll-to-top';
+      scrollBtn.innerHTML = '↑';
+      scrollBtn.setAttribute('aria-label', 'Retour en haut');
+      document.body.appendChild(scrollBtn);
+
+      window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+          scrollBtn.classList.add('show');
+        } else {
+          scrollBtn.classList.remove('show');
+        }
+      });
+
+      scrollBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  };
+
+  // Gestion du thème
+  const themeManager = {
+    init() {
+      const themeToggle = document.getElementById('themeToggle');
+      
+      // Récupérer le thème sauvegardé ou utiliser le thème sombre par défaut
+      try {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        this.setTheme(savedTheme);
+      } catch (e) {
+        this.setTheme('dark');
+      }
+      
+      themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
+      });
+    },
+    
+    setTheme(theme) {
+      const themeIcon = document.getElementById('themeIcon');
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      try {
+        localStorage.setItem('theme', theme);
+      } catch (e) {
+        console.warn('Impossible de sauvegarder le thème');
+      }
+      
+      // Changer l'icône avec animation
+      themeIcon.style.transform = 'rotate(180deg) scale(0)';
+      setTimeout(() => {
+        themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+        themeIcon.style.transform = 'rotate(0deg) scale(1)';
+      }, 150);
+    }
+  };
+
+  // Exposer les fonctions nécessaires au global scope pour les handlers inline
+  window.cartManager = cartManager;
+
+  // Démarrage de l'application
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => app.init());
+  } else {
+    app.init();
+  }
+
+      //function qui empêche le clic droit
+      document.addEventListener('contextmenu', event => event.preventDefault());
+document.onkeydown = function(e) {
+if (e.keyCode == 123) return false; // F12
+if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
+if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
+};
+
+// Empêcher le clic droit
+document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    showAlert();
+  });
+
+  // Empêcher le raccourci pour Inspecter
+  document.onkeydown = function (e) {
+    if (e.keyCode === 123) return showAlert(); // F12
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 'I'.charCodeAt(0)) return showAlert(); // Ctrl+Shift+I
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 'J'.charCodeAt(0)) return showAlert(); // Ctrl+Shift+J
+    if (e.ctrlKey && e.keyCode === 'U'.charCodeAt(0)) return showAlert(); // Ctrl+U
+    if (e.ctrlKey && e.keyCode === 'S'.charCodeAt(0)) return showAlert(); // Ctrl+S
+  };
+
+   // Alerte visuelle simple
+   function showAlert() {
+    const box = document.getElementById("alertBox");
+    box.style.display = "block";
+    setTimeout(() => { box.style.display = "none"; }, 2000);
+    return false;
+  }
+
+  // Obfuscation légère du JavaScript
+  (function(){
+    const msg = ["Ce site appartient à Joseph Yedidya", "Toute copie est interdite 🚫"];
+    console.log(msg[Math.floor(Math.random()*msg.length)]);
+  })();

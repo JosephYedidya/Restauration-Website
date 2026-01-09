@@ -188,40 +188,40 @@ const favoritesManager = {
     }
   },
 
-    toggle(itemId) {
-      const index = state.favorites.indexOf(itemId);
-      const item = menuData.find(i => i.id === itemId);
-      
-      if (index > -1) {
-        state.favorites.splice(index, 1);
-        cartManager.showToast(`${item.title} retiré des favoris`, 'info');
-      } else {
-        state.favorites.push(itemId);
-        cartManager.showToast(`${item.title} ajouté aux favoris`, 'success');
-      }
-      
-      this.save();
-      this.updateVisibility();
-      
-      // Re-render les grilles pour mettre à jour les icônes
-      menuManager.render(filterManager.getFilteredMenu(state.currentFilter));
-      this.renderFavorites();
-    },
-
-    renderFavorites() {
-      const favoriteItems = menuData.filter(item => state.favorites.includes(item.id));
-      menuManager.render(favoriteItems, 'favoritesGrid');
-    },
-
-    updateVisibility() {
-      const favSection = document.getElementById('favorites');
-      if (state.favorites.length > 0) {
-        favSection.style.display = 'block';
-      } else {
-        favSection.style.display = 'none';
-      }
+  toggle(itemId) {
+    const index = state.favorites.indexOf(itemId);
+    const item = menuData.find(i => i.id === itemId);
+    
+    if (index > -1) {
+      state.favorites.splice(index, 1);
+      cartManager.showToast(`${item.title} retiré des favoris`, 'info');
+    } else {
+      state.favorites.push(itemId);
+      cartManager.showToast(`${item.title} ajouté aux favoris`, 'success');
     }
-  };
+    
+    this.save();
+    this.updateVisibility();
+    
+    // Re-render les grilles pour mettre à jour les icônes
+    menuManager.render(filterManager.getFilteredMenu(state.currentFilter));
+    this.renderFavorites();
+  },
+
+  renderFavorites() {
+    const favoriteItems = menuData.filter(item => state.favorites.includes(item.id));
+    menuManager.render(favoriteItems, 'favoritesGrid');
+  },
+
+  updateVisibility() {
+    const favSection = document.getElementById('favorites');
+    if (state.favorites.length > 0) {
+      favSection.style.display = 'block';
+    } else {
+      favSection.style.display = 'none';
+    }
+  }
+};
 
 // Gestion du panier
 const cartManager = {
@@ -233,465 +233,624 @@ const cartManager = {
         state.cart = JSON.parse(savedCart);
         this.render();
       }
+    } catch (e) {
+      console.warn('Impossible de charger le panier sauvegardé');
+    }
 
-      // Charger l'état du panier (ouvert/fermé)
-      try {
-        const savedCartState = localStorage.getItem('bistro_cart_state');
-        if (savedCartState) {
-          state.cartOpen = JSON.parse(savedCartState);
-          this.updateCartVisibility();
-        }
-      } catch (e) {
-        console.warn('Impossible de charger l\'état du panier');
+    // Charger l'état du panier (ouvert/fermé)
+    try {
+      const savedCartState = localStorage.getItem('bistro_cart_state');
+      if (savedCartState) {
+        state.cartOpen = JSON.parse(savedCartState);
+        this.updateCartVisibility();
       }
+    } catch (e) {
+      console.warn('Impossible de charger l\'état du panier');
+    }
 
-      // Event listener pour le bouton panier
-      document.getElementById('cartToggle').addEventListener('click', () => {
-        this.toggleCart();
-      });
-    },
+    // Event listener pour le bouton panier
+    document.getElementById('cartToggle').addEventListener('click', () => {
+      this.toggleCart();
+    });
+  },
 
-    saveCart() {
-      try {
-        localStorage.setItem('bistro_cart', JSON.stringify(state.cart));
-      } catch (e) {
-        console.warn('Impossible de sauvegarder le panier');
+  saveCart() {
+    try {
+      localStorage.setItem('bistro_cart', JSON.stringify(state.cart));
+    } catch (e) {
+      console.warn('Impossible de sauvegarder le panier');
+    }
+  },
+
+  addItem(item) {
+    const existingItem = state.cart.find(cartItem => cartItem.id === item.id);
+    
+    if (existingItem) {
+      existingItem.qty++;
+    } else {
+      state.cart.push({ ...item, qty: 1 });
+    }
+    
+    this.render();
+    this.animateCartBadge();
+    this.saveCart();
+    this.showToast(`${item.title} ajouté au panier`, 'success');
+  },
+  
+  removeItem(id) {
+    const item = state.cart.find(cartItem => cartItem.id === id);
+    const index = state.cart.findIndex(cartItem => cartItem.id === id);
+    if (index > -1) {
+      state.cart.splice(index, 1);
+      if (item) {
+        this.showToast(`${item.title} retiré du panier`, 'info');
       }
-    },
-
-    addItem(item) {
-      const existingItem = state.cart.find(cartItem => cartItem.id === item.id);
-      
-      if (existingItem) {
-        existingItem.qty++;
-      } else {
-        state.cart.push({ ...item, qty: 1 });
-      }
-      
+    }
+    this.render();
+    this.saveCart();
+  },
+  
+  updateQuantity(id, delta) {
+    const item = state.cart.find(cartItem => cartItem.id === id);
+    
+    if (!item) return;
+    
+    item.qty += delta;
+    
+    if (item.qty < 1) {
+      this.removeItem(id);
+    } else {
       this.render();
-      this.animateCartBadge();
       this.saveCart();
-      this.showToast(`${item.title} ajouté au panier`, 'success');
-    },
+    }
+  },
+  
+  render() {
+    const cartList = document.getElementById('cartList');
+    const totalEl = document.getElementById('total');
+    const badgeEl = document.getElementById('cartBadge');
     
-    removeItem(id) {
-      const item = state.cart.find(cartItem => cartItem.id === id);
-      const index = state.cart.findIndex(cartItem => cartItem.id === id);
-      if (index > -1) {
-        state.cart.splice(index, 1);
-        if (item) {
-          this.showToast(`${item.title} retiré du panier`, 'info');
-        }
-      }
-      this.render();
-      this.saveCart();
-    },
+    cartList.innerHTML = '';
     
-    updateQuantity(id, delta) {
-      const item = state.cart.find(cartItem => cartItem.id === id);
-      
-      if (!item) return;
-      
-      item.qty += delta;
-      
-      if (item.qty < 1) {
-        this.removeItem(id);
-      } else {
-        this.render();
-        this.saveCart();
-      }
-    },
+    if (state.cart.length === 0) {
+      cartList.innerHTML = '<div class="cart-empty">Votre panier est vide</div>';
+      totalEl.textContent = '0 FCFA';
+      badgeEl.textContent = '0';
+      return;
+    }
     
-    render() {
-      const cartList = document.getElementById('cartList');
-      const totalEl = document.getElementById('total');
-      const badgeEl = document.getElementById('cartBadge');
+    let total = 0;
+    let totalItems = 0;
+    
+    state.cart.forEach(item => {
+      total += item.price * item.qty;
+      totalItems += item.qty;
       
-      cartList.innerHTML = '';
+      const cartItem = document.createElement('div');
+      cartItem.className = 'cart-item';
       
-      if (state.cart.length === 0) {
-        cartList.innerHTML = '<div class="cart-empty">Votre panier est vide</div>';
-        totalEl.textContent = '0 FCFA';
-        badgeEl.textContent = '0';
-        return;
-      }
-      
-      let total = 0;
-      let totalItems = 0;
-      
-      state.cart.forEach(item => {
-        total += item.price * item.qty;
-        totalItems += item.qty;
-        
-        const cartItem = document.createElement('div');
-        cartItem.className = 'cart-item';
-        
-        cartItem.innerHTML = `
-          <img src="${item.img}" alt="${item.title}">
-          <div class="cart-item-info">
-            <div class="cart-item-title">${item.title}</div>
-            <div class="cart-item-price">${item.qty} × ${utils.formatCurrency(item.price)}</div>
+      cartItem.innerHTML = `
+        <img src="${item.img}" alt="${item.title}">
+        <div class="cart-item-info">
+          <div class="cart-item-title">${item.title}</div>
+          <div class="cart-item-price">${item.qty} × ${utils.formatCurrency(item.price)}</div>
+        <div class="cart-item-controls">
+          <div class="cart-item-total">${utils.formatCurrency(item.price * item.qty)}</div>
+          <div class="cart-item-buttons">
+            <button class="cart-btn" onclick="cartManager.updateQuantity(${item.id}, -1)" aria-label="Diminuer la quantité">−</button>
+            <button class="cart-btn" onclick="cartManager.updateQuantity(${item.id}, 1)" aria-label="Augmenter la quantité">+</button>
+            <button class="cart-btn" onclick="cartManager.removeItem(${item.id})" aria-label="Retirer du panier">✕</button>
           </div>
-          <div class="cart-item-controls">
-            <div class="cart-item-total">${utils.formatCurrency(item.price * item.qty)}</div>
-            <div class="cart-item-buttons">
-              <button class="cart-btn" onclick="cartManager.updateQuantity(${item.id}, -1)" aria-label="Diminuer la quantité">−</button>
-              <button class="cart-btn" onclick="cartManager.updateQuantity(${item.id}, 1)" aria-label="Augmenter la quantité">+</button>
-              <button class="cart-btn" onclick="cartManager.removeItem(${item.id})" aria-label="Retirer du panier">✕</button>
-            </div>
-          </div>
-        `;
-        
-        cartList.appendChild(cartItem);
-      });
+      `;
       
-      totalEl.textContent = utils.formatCurrency(total);
-      badgeEl.textContent = totalItems;
-      
-      // Mettre à jour le badge de navigation
-      this.updateCartBadge();
-    },
+      cartList.appendChild(cartItem);
+    });
     
-    animateCartBadge() {
-      const badge = document.getElementById('cartBadge');
-      const badgeNav = document.getElementById('cartBadgeNav');
-      
-      if (badge) {
-        badge.style.transform = 'scale(1.3)';
-        setTimeout(() => {
-          badge.style.transform = 'scale(1)';
-        }, 200);
-      }
-      
-      if (badgeNav) {
-        badgeNav.style.transform = 'scale(1.3)';
-        setTimeout(() => {
-          badgeNav.style.transform = 'scale(1)';
-        }, 200);
-      }
-    },
+    totalEl.textContent = utils.formatCurrency(total);
+    badgeEl.textContent = totalItems;
     
-    checkout() {
-      if (state.cart.length === 0) {
-        this.showToast('Votre panier est vide. Ajoutez des plats pour commander.', 'warning');
-        return;
-      }
-      
-      let summary = '🛒 Récapitulatif de votre commande\n\n';
-      
-      state.cart.forEach(item => {
-        summary += `${item.qty} × ${item.title}\n`;
-        summary += `   ${utils.formatCurrency(item.price * item.qty)}\n\n`;
-      });
-      
-      const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      summary += `━━━━━━━━━━━━━━━━━━━━\n`;
-      summary += `Total: ${utils.formatCurrency(total)}\n\n`;
-      summary += `✓ Merci pour votre commande !\n`;
-      summary += `Temps de préparation estimé : 25-35 min`;
-      
-      alert(summary);
-      
-      // Vider le panier après commande
-      state.cart = [];
-      this.render();
-      this.saveCart();
-      this.showToast('Commande validée avec succès !', 'success');
-    },
-
-    toggleCart() {
-      state.cartOpen = !state.cartOpen;
-      this.updateCartVisibility();
-      this.saveCartState();
-    },
-
-    updateCartVisibility() {
-      const cart = document.getElementById('cart');
-      const cartToggle = document.getElementById('cartToggle');
-      
-      if (state.cartOpen) {
-        cart.classList.remove('hidden');
-        cartToggle.classList.add('active');
-        cartToggle.setAttribute('aria-label', 'Fermer le panier');
-      } else {
-        cart.classList.add('hidden');
-        cartToggle.classList.remove('active');
-        cartToggle.setAttribute('aria-label', 'Ouvrir le panier');
-      }
-    },
-
-    saveCartState() {
-      try {
-        localStorage.setItem('bistro_cart_state', JSON.stringify(state.cartOpen));
-      } catch (e) {
-        console.warn('Impossible de sauvegarder l\'état du panier');
-      }
-    },
-
-    updateCartBadge() {
-      const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
-      const badgeNav = document.getElementById('cartBadgeNav');
-      
-      if (badgeNav) {
-        badgeNav.textContent = totalItems;
-        
-        // Animation du badge
-        badgeNav.style.transform = 'scale(1.3)';
-        setTimeout(() => {
-          badgeNav.style.transform = 'scale(1)';
-        }, 200);
-      }
-    },
-
-    showToast(message, type = 'info') {
-      const toast = document.createElement('div');
-      toast.className = 'toast toast-' + type;
-      
-      const icon = {
-        success: '✓',
-        error: '✗',
-        warning: '⚠',
-        info: 'ℹ'
-      }[type] || 'ℹ';
-      
-      toast.innerHTML = `<span class="toast-icon">${icon}</span> ${message}`;
-      
-      document.body.appendChild(toast);
-      
-      setTimeout(() => toast.classList.add('toast-show'), 10);
-      
+    // Mettre à jour le badge de navigation
+    this.updateCartBadge();
+  },
+  
+  animateCartBadge() {
+    const badge = document.getElementById('cartBadge');
+    const badgeNav = document.getElementById('cartBadgeNav');
+    
+    if (badge) {
+      badge.style.transform = 'scale(1.3)';
       setTimeout(() => {
-        toast.classList.remove('toast-show');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+        badge.style.transform = 'scale(1)';
+      }, 200);
     }
-  };
-
-  // Gestion de la recherche
-  const searchManager = {
-    init() {
-      const searchInput = document.getElementById('search');
-      const searchBtn = document.getElementById('searchBtn');
-      
-      const performSearch = () => {
-        const query = searchInput.value.trim().toLowerCase();
-        
-        if (!query) {
-          filterManager.setActiveFilter('Tous');
-          menuManager.render(state.menu);
-          return;
-        }
-        
-        const results = state.menu.filter(item => {
-          const searchText = `${item.title} ${item.desc} ${item.tag}`.toLowerCase();
-          return searchText.includes(query);
-        });
-        
-        // Désactiver les filtres lors d'une recherche
-        document.querySelectorAll('.filters .chip').forEach(chip => {
-          chip.classList.remove('active');
-          chip.setAttribute('aria-pressed', 'false');
-        });
-        
-        menuManager.render(results);
-        
-        // Message si aucun résultat
-        if (results.length === 0) {
-          document.getElementById('menuGrid').innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted);">
-              <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
-              <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun résultat trouvé</div>
-              <div>Essayez avec d'autres mots-clés</div>
-            </div>
-          `;
-        }
-      };
-      
-      searchBtn.addEventListener('click', performSearch);
-      searchInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') {
-          performSearch();
-        }
-      });
-      
-      // Recherche en temps réel (debounced)
-      searchInput.addEventListener('input', utils.debounce(performSearch, 500));
-    }
-  };
-
-  // Gestion de la lightbox
-  const lightboxManager = {
-    images: [],
-    currentIndex: 0,
-
-    init() {
-      const galleryImages = document.querySelectorAll('.gallery-grid img');
-      this.images = Array.from(galleryImages);
-      
-      galleryImages.forEach((img, index) => {
-        img.addEventListener('click', () => this.open(index));
-      });
-
-      document.getElementById('lightboxClose').addEventListener('click', () => this.close());
-      document.getElementById('lightboxPrev').addEventListener('click', () => this.prev());
-      document.getElementById('lightboxNext').addEventListener('click', () => this.next());
-      
-      // Fermer avec Échap
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') this.close();
-        if (e.key === 'ArrowLeft') this.prev();
-        if (e.key === 'ArrowRight') this.next();
-      });
-
-      // Fermer en cliquant sur le fond
-      document.getElementById('lightbox').addEventListener('click', (e) => {
-        if (e.target.id === 'lightbox') this.close();
-      });
-    },
-
-    open(index) {
-      this.currentIndex = index;
-      this.show();
-    },
-
-    show() {
-      const lightbox = document.getElementById('lightbox');
-      const img = document.getElementById('lightboxImg');
-      
-      img.src = this.images[this.currentIndex].src;
-      img.alt = this.images[this.currentIndex].alt;
-      
-      lightbox.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    },
-
-    close() {
-      const lightbox = document.getElementById('lightbox');
-      lightbox.classList.remove('active');
-      document.body.style.overflow = '';
-    },
-
-    next() {
-      this.currentIndex = (this.currentIndex + 1) % this.images.length;
-      this.show();
-    },
-
-    prev() {
-      this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
-      this.show();
-    }
-  };
-
-  // Initialisation de l'application
-  const app = {
-    init() {
-      filterManager.init();
-      searchManager.init();
-      cartManager.init();
-      favoritesManager.init();
-      lightboxManager.init();
-      menuManager.render(state.menu);
-      favoritesManager.renderFavorites();
-      cartManager.render();
-      themeManager.init();
-      this.initScrollToTop();
-      
-      // Gestion du bouton de commande
-      document.getElementById('checkoutBtn').addEventListener('click', () => {
-        cartManager.checkout();
-      });
-      
-      // Smooth scroll pour la navigation
-      document.querySelectorAll('nav a').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const targetId = link.getAttribute('href');
-          const target = document.querySelector(targetId);
-          
-          if (target) {
-            target.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'start' 
-            });
-          }
-        });
-      });
-      
-      console.log('🍽️ Bistro Rive - Application initialisée avec succès');
-    },
-
-    initScrollToTop() {
-      const scrollBtn = document.createElement('button');
-      scrollBtn.className = 'scroll-to-top';
-      scrollBtn.innerHTML = '↑';
-      scrollBtn.setAttribute('aria-label', 'Retour en haut');
-      document.body.appendChild(scrollBtn);
-
-      window.addEventListener('scroll', () => {
-        if (window.pageYOffset > 300) {
-          scrollBtn.classList.add('show');
-        } else {
-          scrollBtn.classList.remove('show');
-        }
-      });
-
-      scrollBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    }
-  };
-
-  // Gestion du thème
-  const themeManager = {
-    init() {
-      const themeToggle = document.getElementById('themeToggle');
-      
-      // Récupérer le thème sauvegardé ou utiliser le thème sombre par défaut
-      try {
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        this.setTheme(savedTheme);
-      } catch (e) {
-        this.setTheme('dark');
-      }
-      
-      themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        this.setTheme(newTheme);
-      });
-    },
     
-    setTheme(theme) {
-      const themeIcon = document.getElementById('themeIcon');
-      document.documentElement.setAttribute('data-theme', theme);
-      
-      try {
-        localStorage.setItem('theme', theme);
-      } catch (e) {
-        console.warn('Impossible de sauvegarder le thème');
-      }
-      
-      // Changer l'icône avec animation
-      themeIcon.style.transform = 'rotate(180deg) scale(0)';
+    if (badgeNav) {
+      badgeNav.style.transform = 'scale(1.3)';
       setTimeout(() => {
-        themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
-        themeIcon.style.transform = 'rotate(0deg) scale(1)';
-      }, 150);
+        badgeNav.style.transform = 'scale(1)';
+      }, 200);
     }
-  };
+  },
+  
+  checkout() {
+    if (state.cart.length === 0) {
+      this.showToast('Votre panier est vide. Ajoutez des plats pour commander.', 'warning');
+      return;
+    }
+    
+    let summary = '🛒 Récapitulatif de votre commande\n\n';
+    
+    state.cart.forEach(item => {
+      summary += `${item.qty} × ${item.title}\n`;
+      summary += `   ${utils.formatCurrency(item.price * item.qty)}\n\n`;
+    });
+    
+    const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    summary += `━━━━━━━━━━━━━━━━━━━━\n`;
+    summary += `Total: ${utils.formatCurrency(total)}\n\n`;
+    summary += `✓ Merci pour votre commande !\n`;
+    summary += `Temps de préparation estimé : 25-35 min`;
+    
+    alert(summary);
+    
+    // Vider le panier après commande
+    state.cart = [];
+    this.render();
+    this.saveCart();
+    this.showToast('Commande validée avec succès !', 'success');
+  },
 
-  // Exposer les fonctions nécessaires au global scope pour les handlers inline
-  window.cartManager = cartManager;
+  toggleCart() {
+    state.cartOpen = !state.cartOpen;
+    this.updateCartVisibility();
+    this.saveCartState();
+  },
 
-  // Démarrage de l'application
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => app.init());
-  } else {
-    app.init();
+  updateCartVisibility() {
+    const cart = document.getElementById('cart');
+    const cartToggle = document.getElementById('cartToggle');
+    
+    if (state.cartOpen) {
+      cart.classList.remove('hidden');
+      cartToggle.classList.add('active');
+      cartToggle.setAttribute('aria-label', 'Fermer le panier');
+    } else {
+      cart.classList.add('hidden');
+      cartToggle.classList.remove('active');
+      cartToggle.setAttribute('aria-label', 'Ouvrir le panier');
+    }
+  },
+
+  saveCartState() {
+    try {
+      localStorage.setItem('bistro_cart_state', JSON.stringify(state.cartOpen));
+    } catch (e) {
+      console.warn('Impossible de sauvegarder l\'état du panier');
+    }
+  },
+
+  updateCartBadge() {
+    const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+    const badgeNav = document.getElementById('cartBadgeNav');
+    
+    if (badgeNav) {
+      badgeNav.textContent = totalItems;
+      
+      // Animation du badge
+      badgeNav.style.transform = 'scale(1.3)';
+      setTimeout(() => {
+        badgeNav.style.transform = 'scale(1)';
+      }, 200);
+    }
+  },
+
+  showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    
+    const icon = {
+      success: '✓',
+      error: '✗',
+      warning: '⚠',
+      info: 'ℹ'
+    }[type] || 'ℹ';
+    
+    toast.innerHTML = `<span class="toast-icon">${icon}</span> ${message}`;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('toast-show'), 10);
+    
+    setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
   }
+};
 
-      //function qui empêche le clic droit
-      document.addEventListener('contextmenu', event => event.preventDefault());
+// Gestion de la recherche
+const searchManager = {
+  init() {
+    const searchInput = document.getElementById('search');
+    const searchBtn = document.getElementById('searchBtn');
+    
+    const performSearch = () => {
+      const query = searchInput.value.trim().toLowerCase();
+      
+      if (!query) {
+        filterManager.setActiveFilter('Tous');
+        menuManager.render(state.menu);
+        return;
+      }
+      
+      const results = state.menu.filter(item => {
+        const searchText = `${item.title} ${item.desc} ${item.tag}`.toLowerCase();
+        return searchText.includes(query);
+      });
+      
+      // Désactiver les filtres lors d'une recherche
+      document.querySelectorAll('.filters .chip').forEach(chip => {
+        chip.classList.remove('active');
+        chip.setAttribute('aria-pressed', 'false');
+      });
+      
+      menuManager.render(results);
+      
+      // Message si aucun résultat
+      if (results.length === 0) {
+        document.getElementById('menuGrid').innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted);">
+            <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun résultat trouvé</div>
+            <div>Essayez avec d'autres mots-clés</div>
+        `;
+      }
+    };
+    
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        performSearch();
+      }
+    });
+    
+    // Recherche en temps réel (debounced)
+    searchInput.addEventListener('input', utils.debounce(performSearch, 500));
+  }
+};
+
+// Gestion de la lightbox
+const lightboxManager = {
+  images: [],
+  currentIndex: 0,
+
+  init() {
+    const galleryImages = document.querySelectorAll('.gallery-grid img');
+    this.images = Array.from(galleryImages);
+    
+    galleryImages.forEach((img, index) => {
+      img.addEventListener('click', () => this.open(index));
+    });
+
+    document.getElementById('lightboxClose').addEventListener('click', () => this.close());
+    document.getElementById('lightboxPrev').addEventListener('click', () => this.prev());
+    document.getElementById('lightboxNext').addEventListener('click', () => this.next());
+    
+    // Fermer avec Échap
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.close();
+      if (e.key === 'ArrowLeft') this.prev();
+      if (e.key === 'ArrowRight') this.next();
+    });
+
+    // Fermer en cliquant sur le fond
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if (e.target.id === 'lightbox') this.close();
+    });
+  },
+
+  open(index) {
+    this.currentIndex = index;
+    this.show();
+  },
+
+  show() {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightboxImg');
+    
+    img.src = this.images[this.currentIndex].src;
+    img.alt = this.images[this.currentIndex].alt;
+    
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  },
+
+  close() {
+    const lightbox = document.getElementById('lightbox');
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+  },
+
+  next() {
+    this.currentIndex = (this.currentIndex + 1) % this.images.length;
+    this.show();
+  },
+
+  prev() {
+    this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
+    this.show();
+  }
+};
+
+// Gestion des avis clients
+const reviewManager = {
+  reviews: [],
+
+  init() {
+    this.loadReviews();
+    this.renderReviews();
+    this.initForm();
+  },
+
+  loadReviews() {
+    try {
+      const savedReviews = localStorage.getItem('bistro_reviews');
+      if (savedReviews) {
+        this.reviews = JSON.parse(savedReviews);
+      } else {
+        // Avis par défaut
+        this.reviews = [
+          {
+            id: 1,
+            name: 'Marie Dupont',
+            rating: 5,
+            comment: 'Excellent restaurant ! La nourriture est délicieuse et le service impeccable. Je recommande vivement.',
+            date: '2024-01-15'
+          },
+          {
+            id: 2,
+            name: 'Pierre Martin',
+            rating: 4,
+            comment: 'Très bonne expérience. Les plats sont savoureux et l\'ambiance est agréable. Petit bémol sur le temps d\'attente.',
+            date: '2024-01-10'
+          },
+          {
+            id: 3,
+            name: 'Sophie Leroy',
+            rating: 5,
+            comment: 'Un vrai coup de cœur ! Tout était parfait, de l\'entrée au dessert. À refaire absolument.',
+            date: '2024-01-08'
+          }
+        ];
+        this.saveReviews();
+      }
+    } catch (e) {
+      console.warn('Impossible de charger les avis');
+      this.reviews = [];
+    }
+  },
+
+  saveReviews() {
+    try {
+      localStorage.setItem('bistro_reviews', JSON.stringify(this.reviews));
+    } catch (e) {
+      console.warn('Impossible de sauvegarder les avis');
+    }
+  },
+
+  initForm() {
+    const form = document.getElementById('reviewForm');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.addReview();
+    });
+  },
+
+  addReview() {
+    const name = document.getElementById('reviewName').value.trim();
+    const rating = document.getElementById('reviewRating').value;
+    const comment = document.getElementById('reviewComment').value.trim();
+
+    if (!name || !rating || !comment) {
+      cartManager.showToast('Veuillez remplir tous les champs', 'warning');
+      return;
+    }
+
+    const newReview = {
+      id: Date.now(),
+      name: name,
+      rating: parseInt(rating),
+      comment: comment,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    this.reviews.unshift(newReview); // Ajouter au début
+    this.saveReviews();
+    this.renderReviews();
+
+    // Réinitialiser le formulaire
+    document.getElementById('reviewForm').reset();
+
+    cartManager.showToast('Votre avis a été publié avec succès !', 'success');
+  },
+
+  renderReviews() {
+    const reviewsList = document.getElementById('reviewsList');
+    reviewsList.innerHTML = '';
+
+    if (this.reviews.length === 0) {
+      reviewsList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--muted);">Aucun avis pour le moment. Soyez le premier à donner votre avis !</div>';
+      return;
+    }
+
+    this.reviews.forEach((review, index) => {
+      const reviewItem = document.createElement('div');
+      reviewItem.className = 'review-item fade-in';
+      reviewItem.style.animationDelay = `${index * 0.1}s`;
+
+      const stars = '⭐'.repeat(review.rating);
+
+      reviewItem.innerHTML = `
+        <div class="review-header">
+          <div class="review-author">${review.name}</div>
+          <div class="review-rating">${stars}</div>
+        <div class="review-date">${this.formatDate(review.date)}</div>
+        <div class="review-comment">${review.comment}</div>
+      `;
+
+      reviewsList.appendChild(reviewItem);
+    });
+  },
+
+  formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+};
+
+// Gestion du thème
+const themeManager = {
+  init() {
+    const themeToggle = document.getElementById('themeToggle');
+    
+    // Récupérer le thème sauvegardé ou utiliser le thème sombre par défaut
+    try {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      this.setTheme(savedTheme);
+    } catch (e) {
+      this.setTheme('dark');
+    }
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      this.setTheme(newTheme);
+    });
+  },
+  
+  setTheme(theme) {
+    const themeIcon = document.getElementById('themeIcon');
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      console.warn('Impossible de sauvegarder le thème');
+    }
+    
+    // Changer l'icône avec animation
+    themeIcon.style.transform = 'rotate(180deg) scale(0)';
+    setTimeout(() => {
+      themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeIcon.style.transform = 'rotate(0deg) scale(1)';
+    }, 150);
+  }
+};
+
+// Initialisation de l'application
+const app = {
+  init() {
+    filterManager.init();
+    searchManager.init();
+    cartManager.init();
+    favoritesManager.init();
+    lightboxManager.init();
+    menuManager.render(state.menu);
+    favoritesManager.renderFavorites();
+    cartManager.render();
+    themeManager.init();
+    reviewManager.init();
+    this.initScrollToTop();
+    
+    // Gestion du bouton de commande
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      cartManager.checkout();
+    });
+    
+    // Smooth scroll pour la navigation
+    document.querySelectorAll('nav a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href');
+        const target = document.querySelector(targetId);
+        
+        if (target) {
+          target.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      });
+    });
+    
+    console.log('🍽️ Bistro Rive - Application initialisée avec succès');
+
+    // Enregistrement du Service Worker pour PWA
+    this.registerServiceWorker();
+  },
+
+  registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((registration) => {
+            console.log('🍽️ Service Worker enregistré avec succès:', registration.scope);
+
+            // Vérifier les mises à jour
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Nouvelle version disponible
+                  cartManager.showToast('Nouvelle version disponible ! Actualisez pour mettre à jour.', 'info');
+                }
+              });
+            });
+          })
+          .catch((error) => {
+            console.error('🍽️ Erreur lors de l\'enregistrement du Service Worker:', error);
+          });
+      });
+    }
+  },
+
+  initScrollToTop() {
+    const scrollBtn = document.createElement('button');
+    scrollBtn.className = 'scroll-to-top';
+    scrollBtn.innerHTML = '↑';
+    scrollBtn.setAttribute('aria-label', 'Retour en haut');
+    document.body.appendChild(scrollBtn);
+
+    window.addEventListener('scroll', () => {
+      if (window.pageYOffset > 300) {
+        scrollBtn.classList.add('show');
+      } else {
+        scrollBtn.classList.remove('show');
+      }
+    });
+
+    scrollBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+};
+
+// Exposer les fonctions nécessaires au global scope pour les handlers inline
+window.cartManager = cartManager;
+
+// Démarrage de l'application
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => app.init());
+} else {
+  app.init();
+}
+
+//function qui empêche le clic droit
+document.addEventListener('contextmenu', event => event.preventDefault());
 document.onkeydown = function(e) {
 if (e.keyCode == 123) return false; // F12
 if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I

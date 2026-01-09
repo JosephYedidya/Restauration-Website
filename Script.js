@@ -20,28 +20,28 @@ const state = {
   cartOpen: false
 };
 
-  // Utilitaires
-  const utils = {
-    formatCurrency: (amount) => {
-      const formattedAmount = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(Number(amount));
-      return `${formattedAmount} FCFA`;
-    },
-    
-    debounce: (func, wait) => {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
+// Utilitaires
+const utils = {
+  formatCurrency: (amount) => {
+    const formattedAmount = new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Number(amount));
+    return `${formattedAmount} FCFA`;
+  },
+  
+  debounce: (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
         clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
+        func(...args);
       };
-    }
-  };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+};
 
   // Gestion des filtres
   const filterManager = {

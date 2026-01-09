@@ -43,50 +43,67 @@ const utils = {
   }
 };
 
-  // Gestion des filtres
-  const filterManager = {
-    init() {
-      const tags = ['Tous', ...new Set(menuData.map(item => item.tag))];
-      const filtersEl = document.getElementById('filters');
+// Gestion des filtres
+const filterManager = {
+  init() {
+    const tags = ['Tous', ...new Set(menuData.map(item => item.tag))];
+    const filtersEl = document.getElementById('filters');
+    
+    tags.forEach(tag => {
+      const button = document.createElement('button');
+      button.className = 'chip' + (tag === 'Tous' ? ' active' : '');
+      button.textContent = tag;
+      button.setAttribute('aria-pressed', tag === 'Tous');
       
-      tags.forEach(tag => {
-        const button = document.createElement('button');
-        button.className = 'chip' + (tag === 'Tous' ? ' active' : '');
-        button.textContent = tag;
-        button.setAttribute('aria-pressed', tag === 'Tous');
-        
-        button.addEventListener('click', () => {
-          this.setActiveFilter(tag);
-          menuManager.render(this.getFilteredMenu(tag));
-        });
-        
-        filtersEl.appendChild(button);
+      button.addEventListener('click', () => {
+        this.setActiveFilter(tag);
+        menuManager.render(this.getFilteredMenu(tag));
       });
-    },
-    
-    setActiveFilter(tag) {
-      state.currentFilter = tag;
-      document.querySelectorAll('.filters .chip').forEach(chip => {
-        const isActive = chip.textContent === tag;
-        chip.classList.toggle('active', isActive);
-        chip.setAttribute('aria-pressed', isActive);
-      });
-    },
-    
-    getFilteredMenu(tag) {
-      return tag === 'Tous' 
-        ? state.menu 
-        : state.menu.filter(item => item.tag === tag);
-    }
-  };
+      
+      filtersEl.appendChild(button);
+    });
+  },
+  
+  setActiveFilter(tag) {
+    state.currentFilter = tag;
+    document.querySelectorAll('.filters .chip').forEach(chip => {
+      const isActive = chip.textContent === tag;
+      chip.classList.toggle('active', isActive);
+      chip.setAttribute('aria-pressed', isActive);
+    });
+  },
+  
+  getFilteredMenu(tag) {
+    return tag === 'Tous' 
+      ? state.menu 
+      : state.menu.filter(item => item.tag === tag);
+  }
+};
 
-  // Gestion du menu
-  const menuManager = {
-    render(items, targetGrid = 'menuGrid') {
-      const menuGrid = document.getElementById(targetGrid);
-      const template = document.getElementById('cardTpl');
+// Gestion du menu
+const menuManager = {
+  render(items, targetGrid = 'menuGrid') {
+    const menuGrid = document.getElementById(targetGrid);
+    const template = document.getElementById('cardTpl');
+    
+    menuGrid.innerHTML = '';
+    
+    if (items.length === 0 && targetGrid === 'favoritesGrid') {
+      menuGrid.innerHTML = `
+        <div class="favorites-empty" style="grid-column: 1/-1;">
+          <div class="favorites-empty-icon">💔</div>
+          <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun favori</div>
+          <div>Ajoutez des plats à vos favoris en cliquant sur ❤️</div>
+      `;
+      return;
+    }
+    
+    items.forEach((item, index) => {
+      const clone = template.content.cloneNode(true);
       
-      menuGrid.innerHTML = '';
+      const img = clone.querySelector('[data-role="img"]');
+      img.src = item.img;
+      img.alt = item.title;
       
       if (items.length === 0 && targetGrid === 'favoritesGrid') {
         menuGrid.innerHTML = `

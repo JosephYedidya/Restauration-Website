@@ -158,35 +158,27 @@ const menuManager = {
         heroImg.src = previousSrc;
         heroImg.style.opacity = '1';
       }, 200);
-      
-      // Restaurer l'image après 4 secondes
-      setTimeout(() => {
-        heroImg.style.opacity = '0.5';
-        setTimeout(() => {
-          heroImg.src = previousSrc;
-          heroImg.style.opacity = '1';
-        }, 200);
-      }, 4000);
-      
-      // Message de détails
-      const message = `${item.title}\n\n${item.desc}\n\nPrix: ${utils.formatCurrency(item.price)}\nCatégorie: ${item.tag}`;
-      alert(message);
-    }
-  };
+    }, 4000);
+    
+    // Message de détails
+    const message = `${item.title}\n\n${item.desc}\n\nPrix: ${utils.formatCurrency(item.price)}\nCatégorie: ${item.tag}`;
+    alert(message);
+  }
+};
 
-  // Gestion des favoris
-  const favoritesManager = {
-    init() {
-      try {
-        const savedFavorites = localStorage.getItem('bistro_favorites');
-        if (savedFavorites) {
-          state.favorites = JSON.parse(savedFavorites);
-          this.updateVisibility();
-        }
-      } catch (e) {
-        console.warn('Impossible de charger les favoris');
+// Gestion des favoris
+const favoritesManager = {
+  init() {
+    try {
+      const savedFavorites = localStorage.getItem('bistro_favorites');
+      if (savedFavorites) {
+        state.favorites = JSON.parse(savedFavorites);
+        this.updateVisibility();
       }
-    },
+    } catch (e) {
+      console.warn('Impossible de charger les favoris');
+    }
+  },
 
     save() {
       try {

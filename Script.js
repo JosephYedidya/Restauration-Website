@@ -121,10 +121,41 @@ const menuManager = {
         favoritesManager.toggle(item.id);
       });
       
-      // Animation de changement d'image
+      clone.querySelector('[data-role="tag"]').textContent = item.tag;
+      clone.querySelector('[data-role="title"]').textContent = item.title;
+      clone.querySelector('[data-role="desc"]').textContent = item.desc;
+      clone.querySelector('[data-role="price"]').textContent = utils.formatCurrency(item.price);
+      
+      const addBtn = clone.querySelector('[data-role="add"]');
+      addBtn.addEventListener('click', () => cartManager.addItem(item));
+      
+      const detailBtn = clone.querySelector('[data-role="detail"]');
+      detailBtn.addEventListener('click', () => this.showDetails(item));
+      
+      // Animation en cascade
+      const card = clone.querySelector('.card');
+      card.style.animationDelay = `${index * 0.05}s`;
+      
+      menuGrid.appendChild(clone);
+    });
+  },
+  
+  showDetails(item) {
+    const heroImg = document.getElementById('heroImg');
+    const previousSrc = heroImg.src;
+    
+    // Animation de changement d'image
+    heroImg.style.opacity = '0.5';
+    setTimeout(() => {
+      heroImg.src = item.img;
+      heroImg.style.opacity = '1';
+    }, 200);
+    
+    // Restaurer l'image après 4 secondes
+    setTimeout(() => {
       heroImg.style.opacity = '0.5';
       setTimeout(() => {
-        heroImg.src = item.img;
+        heroImg.src = previousSrc;
         heroImg.style.opacity = '1';
       }, 200);
       

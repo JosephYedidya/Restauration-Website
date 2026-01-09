@@ -224,18 +224,15 @@
     }
   };
 
-  // Gestion du panier
-  const cartManager = {
-    init() {
-      // Charger le panier sauvegardé
-      try {
-        const savedCart = localStorage.getItem('bistro_cart');
-        if (savedCart) {
-          state.cart = JSON.parse(savedCart);
-          this.render();
-        }
-      } catch (e) {
-        console.warn('Impossible de charger le panier sauvegardé');
+// Gestion du panier
+const cartManager = {
+  init() {
+    // Charger le panier sauvegardé
+    try {
+      const savedCart = localStorage.getItem('bistro_cart');
+      if (savedCart) {
+        state.cart = JSON.parse(savedCart);
+        this.render();
       }
 
       // Charger l'état du panier (ouvert/fermé)

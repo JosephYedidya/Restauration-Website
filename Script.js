@@ -180,13 +180,13 @@ const favoritesManager = {
     }
   },
 
-    save() {
-      try {
-        localStorage.setItem('bistro_favorites', JSON.stringify(state.favorites));
-      } catch (e) {
-        console.warn('Impossible de sauvegarder les favoris');
-      }
-    },
+  save() {
+    try {
+      localStorage.setItem('bistro_favorites', JSON.stringify(state.favorites));
+    } catch (e) {
+      console.warn('Impossible de sauvegarder les favoris');
+    }
+  },
 
     toggle(itemId) {
       const index = state.favorites.indexOf(itemId);

@@ -105,62 +105,21 @@ const menuManager = {
       img.src = item.img;
       img.alt = item.title;
       
-      if (items.length === 0 && targetGrid === 'favoritesGrid') {
-        menuGrid.innerHTML = `
-          <div class="favorites-empty" style="grid-column: 1/-1;">
-            <div class="favorites-empty-icon">💔</div>
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Aucun favori</div>
-            <div>Ajoutez des plats à vos favoris en cliquant sur ❤️</div>
-          </div>
-        `;
-        return;
-      }
+      // Gestion d'erreur pour les images
+      img.onerror = function() {
+        this.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop&q=80';
+        this.alt = 'Image non disponible';
+      };
       
-      items.forEach((item, index) => {
-        const clone = template.content.cloneNode(true);
-        
-        const img = clone.querySelector('[data-role="img"]');
-        img.src = item.img;
-        img.alt = item.title;
-        
-        // Gestion d'erreur pour les images
-        img.onerror = function() {
-          this.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop&q=80';
-          this.alt = 'Image non disponible';
-        };
-        
-        // Bouton favori
-        const favoriteBtn = clone.querySelector('[data-role="favorite"]');
-        const isFavorite = state.favorites.includes(item.id);
-        favoriteBtn.textContent = isFavorite ? '♥' : '♡';
-        favoriteBtn.classList.toggle('active', isFavorite);
-        favoriteBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          favoritesManager.toggle(item.id);
-        });
-        
-        clone.querySelector('[data-role="tag"]').textContent = item.tag;
-        clone.querySelector('[data-role="title"]').textContent = item.title;
-        clone.querySelector('[data-role="desc"]').textContent = item.desc;
-        clone.querySelector('[data-role="price"]').textContent = utils.formatCurrency(item.price);
-        
-        const addBtn = clone.querySelector('[data-role="add"]');
-        addBtn.addEventListener('click', () => cartManager.addItem(item));
-        
-        const detailBtn = clone.querySelector('[data-role="detail"]');
-        detailBtn.addEventListener('click', () => this.showDetails(item));
-        
-        // Animation en cascade
-        const card = clone.querySelector('.card');
-        card.style.animationDelay = `${index * 0.05}s`;
-        
-        menuGrid.appendChild(clone);
+      // Bouton favori
+      const favoriteBtn = clone.querySelector('[data-role="favorite"]');
+      const isFavorite = state.favorites.includes(item.id);
+      favoriteBtn.textContent = isFavorite ? '♥' : '♡';
+      favoriteBtn.classList.toggle('active', isFavorite);
+      favoriteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        favoritesManager.toggle(item.id);
       });
-    },
-    
-    showDetails(item) {
-      const heroImg = document.getElementById('heroImg');
-      const previousSrc = heroImg.src;
       
       // Animation de changement d'image
       heroImg.style.opacity = '0.5';

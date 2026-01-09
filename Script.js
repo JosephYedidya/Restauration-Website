@@ -1,24 +1,24 @@
-  // Configuration du menu
-  const menuData = [
-    {id: 1, title: 'Tartare de saumon', desc: 'Saumon frais, citron vert, ciboulette, huile d\'olive', price: 8200, tag: 'Poisson', img: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=600&h=400&fit=crop&q=80'},
-    {id: 2, title: 'Burger signature', desc: 'Bœuf Angus, cheddar, sauce maison, frites croustillantes', price: 7200, tag: 'Viande', img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80'},
-    {id: 3, title: 'Pizza au feu de bois', desc: 'Tomates San Marzano, mozzarella di bufala, basilic frais', price: 6200, tag: 'Végétarien', img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop&q=80'},
-    {id: 4, title: 'Salade quinoa & avocat', desc: 'Quinoa bio, avocat, graines, vinaigrette au miel', price: 5500, tag: 'Sain', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop&q=80'},
-    {id: 5, title: 'Risotto champignons', desc: 'Arborio, champignons sauvages, parmesan affiné', price: 8500, tag: 'Végétarien', img: 'https://images.unsplash.com/photo-1476124369491-b79e5ff2f1f7?w=600&h=400&fit=crop&q=80'},
-    {id: 6, title: 'Ceviche du jour', desc: 'Poisson blanc mariné, coriandre fraîche, piment doux', price: 9200, tag: 'Poisson', img: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=600&h=400&fit=crop&q=80'},
-    {id: 7, title: 'Steak frites', desc: 'Entrecôte, beurre maître d\'hôtel, frites maison', price: 11800, tag: 'Viande', img: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&h=400&fit=crop&q=80'},
-    {id: 8, title: 'Tiramisu classique', desc: 'Mascarpone, café arabica, cacao pur', price: 4200, tag: 'Dessert', img: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=600&h=400&fit=crop&q=80'},
-    {id: 9, title: 'Smoothie bowl', desc: 'Fruits frais de saison, granola maison, graines de chia', price: 4600, tag: 'Sain', img: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&h=400&fit=crop&q=80'}
-  ];
+// Configuration du menu
+const menuData = [
+  {id: 1, title: 'Tartare de saumon', desc: 'Saumon frais, citron vert, ciboulette, huile d\'olive', price: 8200, tag: 'Poisson', img: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=600&h=400&fit=crop&q=80'},
+  {id: 2, title: 'Burger signature', desc: 'Bœuf Angus, cheddar, sauce maison, frites croustillantes', price: 7200, tag: 'Viande', img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&h=400&fit=crop&q=80'},
+  {id: 3, title: 'Pizza au feu de bois', desc: 'Tomates San Marzano, mozzarella di bufala, basilic frais', price: 6200, tag: 'Végétarien', img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop&q=80'},
+  {id: 4, title: 'Salade quinoa & avocat', desc: 'Quinoa bio, avocat, graines, vinaigrette au miel', price: 5500, tag: 'Sain', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=400&fit=crop&q=80'},
+  {id: 5, title: 'Risotto champignons', desc: 'Arborio, champignons sauvages, parmesan affiné', price: 8500, tag: 'Végétarien', img: 'https://images.unsplash.com/photo-1476124369491-b79e5ff2f1f7?w=600&h=400&fit=crop&q=80'},
+  {id: 6, title: 'Ceviche du jour', desc: 'Poisson blanc mariné, coriandre fraîche, piment doux', price: 9200, tag: 'Poisson', img: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=600&h=400&fit=crop&q=80'},
+  {id: 7, title: 'Steak frites', desc: 'Entrecôte, beurre maître d\'hôtel, frites maison', price: 11800, tag: 'Viande', img: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&h=400&fit=crop&q=80'},
+  {id: 8, title: 'Tiramisu classique', desc: 'Mascarpone, café arabica, cacao pur', price: 4200, tag: 'Dessert', img: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=600&h=400&fit=crop&q=80'},
+  {id: 9, title: 'Smoothie bowl', desc: 'Fruits frais de saison, granola maison, graines de chia', price: 4600, tag: 'Sain', img: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&h=400&fit=crop&q=80'}
+];
 
-  // État global
-  const state = {
-    menu: menuData,
-    cart: [],
-    favorites: [],
-    currentFilter: 'Tous',
-    cartOpen: false
-  };
+// État global
+const state = {
+  menu: menuData,
+  cart: [],
+  favorites: [],
+  currentFilter: 'Tous',
+  cartOpen: false
+};
 
   // Utilitaires
   const utils = {

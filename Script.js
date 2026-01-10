@@ -765,6 +765,7 @@ const app = {
     themeManager.init();
     reviewManager.init();
     this.initScrollToTop();
+    pwaInstallManager.init();
     
     // Gestion du bouton de commande
     document.getElementById('checkoutBtn').addEventListener('click', () => {
@@ -842,6 +843,176 @@ const app = {
 // Exposer les fonctions nécessaires au global scope pour les handlers inline
 window.cartManager = cartManager;
 
+// Gestion du PWA Install Banner
+const pwaInstallManager = {
+  deferredPrompt: null,
+  isBannerDismissed: false,
+
+  init() {
+    // Vérifier si déjà installé en tant que PWA
+    if (this.isPWAInstalled()) {
+      console.log('PWA déjà installé, bannière masquée');
+      return;
+    }
+
+    // Vérifier si l'utilisateur a déjà fermé la bannière
+    this.isBannerDismissed = this.wasBannerDismissed();
+
+    // Masquer le bouton installer par défaut (sera affiché si le prompt est disponible)
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+
+    // Afficher la bannière après un délai sur mobile (même sans beforeinstallprompt)
+    if (!this.isBannerDismissed && this.isMobileDevice()) {
+      console.log('Affichage de la bannière PWA sur mobile');
+      setTimeout(() => {
+        this.showBanner();
+      }, 3000);
+    }
+
+    // Écouter l'événement beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt reçu');
+      // Empêcher l'affichage automatique du prompt
+      e.preventDefault();
+      // Stocker l'événement pour utilisation ultérieure
+      this.deferredPrompt = e;
+
+      // Afficher le bouton installer si la bannière est visible
+      if (installBtn) {
+        installBtn.style.display = 'flex';
+        installBtn.textContent = 'Installer';
+      }
+
+      // Si la bannière n'est pas encore visible, l'afficher maintenant
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner && !banner.classList.contains('show') && !this.isBannerDismissed) {
+        this.showBanner();
+      }
+    });
+
+    // Écouter l'événement appinstalled
+    window.addEventListener('appinstalled', () => {
+      console.log('Application installée');
+      // Cacher la bannière et réinitialiser l'état
+      this.hideBanner();
+      this.resetDismissalState();
+      cartManager.showToast('Application installée avec succès ! 🎉', 'success');
+    });
+
+    // Gérer le clic sur le bouton installer
+    if (installBtn) {
+      installBtn.addEventListener('click', () => {
+        this.installPWA();
+      });
+    }
+
+    // Gérer le clic sur le bouton fermer
+    const dismissBtn = document.getElementById('pwaDismissBtn');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        this.dismissBanner();
+      });
+    }
+  },
+
+  isPWAInstalled() {
+    // Vérifier si l'application est déjà installée
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true ||
+           document.referrer.includes('android-app://');
+  },
+
+  isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.innerWidth <= 768);
+  },
+
+  wasBannerDismissed() {
+    try {
+      const dismissed = localStorage.getItem('pwa_install_banner_dismissed');
+      return dismissed === 'true';
+    } catch (e) {
+      return false;
+    }
+  },
+
+  showBanner() {
+    const banner = document.getElementById('pwaInstallBanner');
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (banner) {
+      banner.classList.add('show');
+    }
+    // Si pas de prompt disponible, afficher instructions manuelles
+    if (installBtn && !this.deferredPrompt) {
+      installBtn.style.display = 'flex';
+      installBtn.textContent = 'Comment installer';
+    }
+  },
+
+  hideBanner() {
+    const banner = document.getElementById('pwaInstallBanner');
+    if (banner) {
+      banner.classList.remove('show');
+    }
+  },
+
+  dismissBanner() {
+    this.isBannerDismissed = true;
+    this.hideBanner();
+
+    try {
+      localStorage.setItem('pwa_install_banner_dismissed', 'true');
+    } catch (e) {
+      console.warn('Impossible de sauvegarder l\'état de la bannière');
+    }
+  },
+
+  resetDismissalState() {
+    try {
+      localStorage.removeItem('pwa_install_banner_dismissed');
+    } catch (e) {
+      console.warn('Impossible de réinitialiser l\'état de la bannière');
+    }
+  },
+
+  async installPWA() {
+    if (this.deferredPrompt) {
+      // Le prompt est disponible, l'afficher
+      this.deferredPrompt.prompt();
+
+      // Attendre le choix de l'utilisateur
+      const { outcome } = await this.deferredPrompt.userChoice;
+
+      // Nettoyer le prompt
+      this.deferredPrompt = null;
+
+      if (outcome === 'accepted') {
+        console.log('L\'utilisateur a accepté l\'installation');
+      } else {
+        console.log('L\'utilisateur a refusé l\'installation');
+      }
+    } else {
+      // Pas de prompt disponible, afficher des instructions
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      let instructions = '';
+      if (isIOS) {
+        instructions = '📱 Pour installer sur iPhone/iPad:\n\n1. Appuyez sur le bouton Partager\n2. Sélectionnez "Sur l\'écran d\'accueil"\n3. Appuyez sur "Ajouter"';
+      } else if (isAndroid) {
+        instructions = '📱 Pour installer sur Android:\n\n1. Appuyez sur le menu (⋮)\n2. Sélectionnez "Installer l\'application"\n3. Appuyez sur "Installer"';
+      } else {
+        instructions = '💡 Pour installer l\'application:\n\n- Chrome: Menu → Installer Bistro Rive\n- Edge: Menu → Applications → Installer ce site';
+      }
+
+      alert(`Installez Bistro Rive\n\n${instructions}`);
+    }
+  }
+};
+
 // Démarrage de l'application
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => app.init());
@@ -849,28 +1020,8 @@ if (document.readyState === 'loading') {
   app.init();
 }
 
-//function qui empêche le clic droit
-document.addEventListener('contextmenu', event => event.preventDefault());
-document.onkeydown = function(e) {
-if (e.keyCode == 123) return false; // F12
-if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
-if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
-};
 
-// Empêcher le clic droit
-document.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    showAlert();
-  });
-
-  // Empêcher le raccourci pour Inspecter
-  document.onkeydown = function (e) {
-    if (e.keyCode === 123) return showAlert(); // F12
-    if (e.ctrlKey && e.shiftKey && e.keyCode === 'I'.charCodeAt(0)) return showAlert(); // Ctrl+Shift+I
-    if (e.ctrlKey && e.shiftKey && e.keyCode === 'J'.charCodeAt(0)) return showAlert(); // Ctrl+Shift+J
-    if (e.ctrlKey && e.keyCode === 'U'.charCodeAt(0)) return showAlert(); // Ctrl+U
-    if (e.ctrlKey && e.keyCode === 'S'.charCodeAt(0)) return showAlert(); // Ctrl+S
-  };
+ 
 
    // Alerte visuelle simple
    function showAlert() {

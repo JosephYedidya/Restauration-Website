@@ -9,7 +9,10 @@ const STATIC_ASSETS = [
   './index.html',
   './Style.css',
   './Script.js',
-  './manifest.json'
+  './manifest.json',
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // Installation du Service Worker
@@ -22,7 +25,10 @@ self.addEventListener('install', (event) => {
         console.log('🍽️ Service Worker: Mise en cache des fichiers statiques');
         return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('🍽️ Service Worker: Tous les fichiers sont mis en cache');
+        return self.skipWaiting();
+      })
       .catch((error) => {
         console.error('🍽️ Service Worker: Erreur lors de l\'installation:', error);
       })
@@ -36,19 +42,27 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
+        // Supprimer les anciens caches qui ne sont plus utilisés
+        const cachesToDelete = cacheNames.filter((cacheName) => {
+          return cacheName !== STATIC_CACHE && 
+                 cacheName !== DYNAMIC_CACHE;
+        });
+        
+        if (cachesToDelete.length > 0) {
+          console.log('🍽️ Service Worker: Suppression des anciens caches:', cachesToDelete);
+        }
+        
         return Promise.all(
-          cacheNames.map((cacheName) => {
-            // Supprimer les anciens caches
-            if (cacheName !== STATIC_CACHE && 
-                cacheName !== DYNAMIC_CACHE && 
-                cacheName !== CACHE_NAME) {
-              console.log('🍽️ Service Worker: Suppression de l\'ancien cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
+          cachesToDelete.map((cacheName) => caches.delete(cacheName))
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => {
+        console.log('🍽️ Service Worker: Activation terminée');
+        return self.clients.claim();
+      })
+      .catch((error) => {
+        console.error('🍽️ Service Worker: Erreur lors de l\'activation:', error);
+      })
   );
 });
 
@@ -57,39 +71,77 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorer les requêtes vers d'autres domaines (comme Unsplash)
-  if (url.origin !== location.origin) {
+  // Ignorer les requêtes non HTTP/HTTPS (comme les données de chrome extension)
+  if (!url.protocol.startsWith('http')) {
     return;
   }
 
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        // Retourner le cache s'il existe
-        if (cachedResponse) {
-          // Mettre à jour le cache en arrière-plan
-          fetchAndCache(request);
-          return cachedResponse;
-        }
+  // Ignorer les requêtes vers d'autres domaines (comme Unsplash) sauf pour les images
+  if (url.origin !== location.origin) {
+    // Permettre les images de Unsplash pour le moment
+    if (request.destination === 'image') {
+      event.respondWith(networkFirstStrategy(request));
+    }
+    return;
+  }
 
-        // Sinon, faire la requête réseau
-        return fetchAndCache(request);
-      })
-      .catch(() => {
-        // Retourner une page离线 si disponible
-        if (request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      })
-  );
+  event.respondWith(staleWhileRevalidate(request));
 });
 
-function fetchAndCache(request) {
+// Stratégie Stale-While-Revalidate pour les ressources locales
+function staleWhileRevalidate(request) {
+  return caches.match(request)
+    .then((cachedResponse) => {
+      // Faire la requête réseau en arrière-plan
+      const fetchPromise = fetch(request)
+        .then((response) => {
+          // Vérifier si la réponse est valide
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          // Cloner la réponse pour la mettre en cache
+          const responseToCache = response.clone();
+
+          caches.open(DYNAMIC_CACHE)
+            .then((cache) => {
+              cache.put(request, responseToCache);
+            });
+
+          return response;
+        })
+        .catch((error) => {
+          console.error('🍽️ Service Worker: Erreur de fetch:', error);
+          return null;
+        });
+
+      // Retourner le cache s'il existe, sinon attendre la réponse réseau
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetchPromise;
+    })
+    .catch((error) => {
+      console.error('🍽️ Service Worker: Erreur dans staleWhileRevalidate:', error);
+      
+      // Retourner une page offline si disponible et si c'est une navigation
+      if (request.mode === 'navigate') {
+        return caches.match('./index.html');
+      }
+      
+      return new Response('Erreur réseau', { status: 503, statusText: 'Service Unavailable' });
+    });
+}
+
+// Stratégie Network First pour les ressources externes
+function networkFirstStrategy(request) {
   return fetch(request)
     .then((response) => {
       // Vérifier si la réponse est valide
-      if (!response || response.status !== 200 || response.type !== 'basic') {
-        return response;
+      if (!response || response.status !== 200) {
+        // Retourner le cache si disponible
+        return caches.match(request);
       }
 
       // Cloner la réponse pour la mettre en cache
@@ -102,8 +154,9 @@ function fetchAndCache(request) {
 
       return response;
     })
-    .catch((error) => {
-      console.error('🍽️ Service Worker: Erreur de fetch:', error);
+    .catch(() => {
+      // Retourner le cache en cas d'erreur réseau
+      return caches.match(request);
     });
 }
 
@@ -123,10 +176,13 @@ self.addEventListener('sync', (event) => {
 
 // Notifications push (si nécessaire dans le futur)
 self.addEventListener('push', (event) => {
+  // Vérifier si event.data existe
+  const data = event.data ? event.data.text() : 'Nouvelle notification de Bistro Rive';
+  
   const options = {
-    body: event.data ? event.data.text() : 'Nouvelle notification de Bistro Rive',
-    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍽️</text></svg>',
-    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍽️</text></svg>',
+    body: data,
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -159,4 +215,14 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
+// Gestion des erreurs non gérées
+self.addEventListener('error', (event) => {
+  console.error('🍽️ Service Worker: Erreur non gérée:', event.error);
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('🍽️ Service Worker: Promesse rejetée non gérée:', event.reason);
+});
+
 console.log('🍽️ Service Worker: Bistro Rive PWA chargé avec succès');
+

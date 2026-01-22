@@ -586,10 +586,15 @@ const lightboxManager = {
 const reviewManager = {
   reviews: [],
 
-  init() {
+init() {
     this.loadReviews();
-    this.renderReviews();
     this.initForm();
+    // Initialize carousel after loading reviews
+    if (typeof reviewsCarousel !== 'undefined') {
+      reviewsCarousel.init(this.reviews);
+    } else {
+      this.renderReviews();
+    }
   },
 
   loadReviews() {
@@ -679,22 +684,57 @@ const reviewManager = {
     reviewsList.innerHTML = '';
 
     if (this.reviews.length === 0) {
-      reviewsList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--muted);">Aucun avis pour le moment. Soyez le premier à donner votre avis !</div>';
+      reviewsList.innerHTML = `
+        <div class="reviews-empty">
+          <div class="reviews-empty-icon">💬</div>
+          <h4>Aucun avis pour le moment</h4>
+          <p>Soyez le premier à partager votre expérience<br>et à donner votre avis sur notre restaurant !</p>
+        </div>
+      `;
       return;
     }
+
+    // Add header with count
+    const header = document.createElement('div');
+    header.className = 'reviews-list-header';
+    header.innerHTML = `
+      <h4>⭐ Avis des clients</h4>
+      <span class="reviews-count">${this.reviews.length} avis</span>
+    `;
+    reviewsList.appendChild(header);
 
     this.reviews.forEach((review, index) => {
       const reviewItem = document.createElement('div');
       reviewItem.className = 'review-item fade-in';
       reviewItem.style.animationDelay = `${index * 0.1}s`;
 
-      const stars = '⭐'.repeat(review.rating);
+      // Generate initials from name
+      const initials = review.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      
+      // Generate star rating HTML
+      let starsHtml = '';
+      for (let i = 1; i <= 5; i++) {
+        if (i <= review.rating) {
+          starsHtml += '<span class="review-star">★</span>';
+        } else {
+          starsHtml += '<span class="review-star empty">★</span>';
+        }
+      }
 
       reviewItem.innerHTML = `
         <div class="review-header">
-          <div class="review-author">${review.name}</div>
-          <div class="review-rating">${stars}</div>
-        <div class="review-date">${this.formatDate(review.date)}</div>
+          <div class="review-author-info">
+            <div class="review-avatar">${initials}</div>
+            <div class="review-author-details">
+              <div class="review-author">${review.name}</div>
+              <div class="review-rating">${starsHtml}</div>
+            </div>
+          </div>
+          <div class="review-meta">
+            <div class="review-date">${this.formatDate(review.date)}</div>
+            <span class="review-verified">✓ Vérifié</span>
+          </div>
+        </div>
         <div class="review-comment">${review.comment}</div>
       `;
 
@@ -796,26 +836,38 @@ const app = {
 
   registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then((registration) => {
-            console.log('🍽️ Service Worker enregistré avec succès:', registration.scope);
+      // Enregistrer le Service Worker immédiatement (pas besoin d'attendre load)
+      navigator.serviceWorker.register('./sw.js')
+        .then((registration) => {
+          console.log('🍽️ Service Worker enregistré avec succès:', registration.scope);
 
-            // Vérifier les mises à jour
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
+          // Vérifier les mises à jour
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // Nouvelle version disponible
                   cartManager.showToast('Nouvelle version disponible ! Actualisez pour mettre à jour.', 'info');
                 }
               });
-            });
-          })
-          .catch((error) => {
-            console.error('🍽️ Erreur lors de l\'enregistrement du Service Worker:', error);
+            }
           });
-      });
+          
+          // Vérifier si une mise à jour est déjà disponible
+          if (registration.waiting) {
+            cartManager.showToast('Nouvelle version disponible ! Actualisez pour mettre à jour.', 'info');
+          }
+
+          // Notifier que le PWA peut maintenant être installé
+          // Le beforeinstallprompt devrait maintenant être disponible
+          console.log('🍽️ PWA est prêt à être installé');
+        })
+        .catch((error) => {
+          console.error('🍽️ Erreur lors de l\'enregistrement du Service Worker:', error);
+        });
+    } else {
+      console.warn('🍽️ Service Worker non supporté par ce navigateur');
     }
   },
 
@@ -847,11 +899,18 @@ window.cartManager = cartManager;
 const pwaInstallManager = {
   deferredPrompt: null,
   isBannerDismissed: false,
+  isInitialized: false,
 
   init() {
+    // Éviter l'initialisation multiple
+    if (this.isInitialized) {
+      return;
+    }
+    this.isInitialized = true;
+
     // Vérifier si déjà installé en tant que PWA
     if (this.isPWAInstalled()) {
-      console.log('PWA déjà installé, bannière masquée');
+      console.log('🍽️ PWA déjà installé, bannière masquée');
       return;
     }
 
@@ -866,15 +925,18 @@ const pwaInstallManager = {
 
     // Afficher la bannière après un délai sur mobile (même sans beforeinstallprompt)
     if (!this.isBannerDismissed && this.isMobileDevice()) {
-      console.log('Affichage de la bannière PWA sur mobile');
+      console.log('🍽️ Affichage de la bannière PWA sur mobile');
       setTimeout(() => {
-        this.showBanner();
-      }, 3000);
+        // Vérifier à nouveau si pas encore installé
+        if (!this.isPWAInstalled() && !this.isBannerDismissed) {
+          this.showBanner();
+        }
+      }, 5000);
     }
 
     // Écouter l'événement beforeinstallprompt
     window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('beforeinstallprompt reçu');
+      console.log('🍽️ beforeinstallprompt reçu');
       // Empêcher l'affichage automatique du prompt
       e.preventDefault();
       // Stocker l'événement pour utilisation ultérieure
@@ -887,20 +949,27 @@ const pwaInstallManager = {
       }
 
       // Si la bannière n'est pas encore visible, l'afficher maintenant
-      const banner = document.getElementById('pwaInstallBanner');
-      if (banner && !banner.classList.contains('show') && !this.isBannerDismissed) {
+      if (!this.isBannerDismissed) {
         this.showBanner();
       }
     });
 
     // Écouter l'événement appinstalled
-    window.addEventListener('appinstalled', () => {
-      console.log('Application installée');
+    window.addEventListener('appinstalled', (event) => {
+      console.log('🍽️ Application installée');
       // Cacher la bannière et réinitialiser l'état
       this.hideBanner();
       this.resetDismissalState();
       cartManager.showToast('Application installée avec succès ! 🎉', 'success');
     });
+
+    // Réessayer l'affichage de la bannière après interaction utilisateur
+    // Certains navigateurs nécessitent une interaction pour déclencher beforeinstallprompt
+    document.addEventListener('click', () => {
+      if (!this.isBannerDismissed && !this.isPWAInstalled() && !this.deferredPrompt) {
+        console.log('🍽️ Interaction détectée, vérifiant la disponibilité du prompt PWA');
+      }
+    }, { once: true });
 
     // Gérer le clic sur le bouton installer
     if (installBtn) {
@@ -922,12 +991,13 @@ const pwaInstallManager = {
     // Vérifier si l'application est déjà installée
     return window.matchMedia('(display-mode: standalone)').matches ||
            window.navigator.standalone === true ||
-           document.referrer.includes('android-app://');
+           document.referrer.includes('android-app://') ||
+           window.matchMedia('(display-mode: fullscreen)').matches;
   },
 
   isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           (window.innerWidth <= 768);
+           (window.innerWidth <= 768 && window.innerHeight <= 1024);
   },
 
   wasBannerDismissed() {
@@ -966,7 +1036,7 @@ const pwaInstallManager = {
     try {
       localStorage.setItem('pwa_install_banner_dismissed', 'true');
     } catch (e) {
-      console.warn('Impossible de sauvegarder l\'état de la bannière');
+      console.warn('🍽️ Impossible de sauvegarder l\'état de la bannière');
     }
   },
 
@@ -974,7 +1044,7 @@ const pwaInstallManager = {
     try {
       localStorage.removeItem('pwa_install_banner_dismissed');
     } catch (e) {
-      console.warn('Impossible de réinitialiser l\'état de la bannière');
+      console.warn('🍽️ Impossible de réinitialiser l\'état de la bannière');
     }
   },
 
@@ -990,9 +1060,9 @@ const pwaInstallManager = {
       this.deferredPrompt = null;
 
       if (outcome === 'accepted') {
-        console.log('L\'utilisateur a accepté l\'installation');
+        console.log('🍽️ L\'utilisateur a accepté l\'installation');
       } else {
-        console.log('L\'utilisateur a refusé l\'installation');
+        console.log('🍽️ L\'utilisateur a refusé l\'installation');
       }
     } else {
       // Pas de prompt disponible, afficher des instructions

@@ -1,0 +1,246 @@
+// ========================================
+// PWA Install Banner Enhanced
+// ========================================
+
+const pwaInstallManager = {
+  deferredPrompt: null,
+  isBannerDismissed: false,
+  isInitialized: false,
+  hasInteracted: false,
+
+  init() {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+
+    if (this.isPWAInstalled()) {
+      console.log('PWA already installed, banner hidden');
+      return;
+    }
+
+    this.isBannerDismissed = this.wasBannerDismissed();
+    this.createInstallBanner();
+    this.setupUserInteractionDetection();
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt received');
+      e.preventDefault();
+      this.deferredPrompt = e;
+      this.showInstallBanner();
+    });
+
+    window.addEventListener('appinstalled', (event) => {
+      console.log('App installed');
+      this.hideInstallBanner();
+      this.resetDismissalState();
+      if (typeof cartManager !== 'undefined' && cartManager.showToast) {
+        cartManager.showToast('Application installée avec succès !', 'success');
+      }
+    });
+
+    setTimeout(() => {
+      if (!this.deferredPrompt && !this.isBannerDismissed && !this.isPWAInstalled()) {
+        this.showInstallBanner();
+      }
+    }, 8000);
+  },
+
+  createInstallBanner() {
+    if (document.getElementById('pwaInstallBanner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'pwaInstallBanner';
+    banner.className = 'pwa-install-banner';
+    banner.innerHTML = `
+      <div class="pwa-install-content">
+        <div class="pwa-install-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" rx="12" fill="url(#pwa-gradient)"/>
+            <path d="M14 16h20v4H14v-4zm0 6h20v4H14v-4zm0 6h14v4H14v-4z" fill="white"/>
+            <circle cx="34" cy="16" r="8" fill="#ff7a59"/>
+            <path d="M31 14l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <defs><linearGradient id="pwa-gradient" x1="0" y1="0" x2="48" y2="48">
+              <stop stop-color="#ff7a59"/><stop offset="1" stop-color="#ffb86b"/>
+            </linearGradient></defs>
+          </svg>
+        </div>
+        <div class="pwa-install-text">
+          <div class="pwa-install-title">Installez Bistro Rive</div>
+          <div class="pwa-install-desc">Ajoutez l'application à votre écran d'accueil</div>
+        <button class="pwa-install-btn" id="pwaInstallBtn">
+          <span class="install-icon">⬇️</span> Installer
+        </button>
+        <button class="pwa-dismiss-btn" id="pwaDismissBtn">✕</button>
+      </div>
+      <div class="install-progress"><div class="install-progress-bar"></div>
+    `;
+
+    document.body.appendChild(banner);
+    this.addInstallBannerStyles();
+
+    document.getElementById('pwaInstallBtn').addEventListener('click', () => this.installPWA());
+    document.getElementById('pwaDismissBtn').addEventListener('click', () => this.dismissBanner());
+  },
+
+  addInstallBannerStyles() {
+    const style = document.createElement('style');
+    style.id = 'pwa-install-styles';
+    style.textContent = `
+      .pwa-install-banner {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: linear-gradient(180deg, rgba(15,23,36,0.98) 0%, rgba(11,18,32,0.98) 100%);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255,122,89,0.3);
+        padding: 16px 20px 20px; z-index: 10002;
+        transform: translateY(100%); opacity: 0;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+      }
+      .pwa-install-banner.show { transform: translateY(0); opacity: 1; }
+      .pwa-install-content { display: flex; align-items: center; gap: 16px; max-width: 1100px; margin: 0 auto; }
+      .pwa-install-icon { flex-shrink: 0; animation: bounce 2s ease-in-out infinite; }
+      @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+      .pwa-install-text { flex: 1; min-width: 0; }
+      .pwa-install-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; color: #fff; display: flex; align-items: center; gap: 8px; }
+      .pwa-install-title::before { content: '⭐'; }
+      .pwa-install-desc { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.4; }
+      .pwa-install-btn {
+        display: flex; align-items: center; gap: 8px; padding: 14px 24px; border-radius: 12px; border: none;
+        background: linear-gradient(135deg, #ff7a59 0%, #ffb86b 100%);
+        color: #081020; font-weight: 700; font-family: inherit; font-size: 15px;
+        cursor: pointer; transition: all 0.3s ease; flex-shrink: 0; white-space: nowrap;
+        box-shadow: 0 4px 15px rgba(255,122,89,0.4);
+      }
+      .pwa-install-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 25px rgba(255,122,89,0.5); }
+      .install-icon { font-size: 16px; }
+      .pwa-dismiss-btn {
+        width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);
+        font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: all 0.3s ease; flex-shrink: 0;
+      }
+      .pwa-dismiss-btn:hover { background: rgba(255,122,89,0.2); color: #ff7a59; border-color: rgba(255,122,89,0.5); transform: rotate(90deg); }
+      .install-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255,122,89,0.2); overflow: hidden; }
+      .install-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #ff7a59, #ffb86b); transition: width 0.3s ease; animation: progressPulse 2s ease-in-out infinite; }
+      @keyframes progressPulse { 0%,100%{width:0%;opacity:0.5} 50%{width:100%;opacity:1} }
+      [data-theme="light"] .pwa-install-banner { background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,247,250,0.98) 100%); border-top: 1px solid rgba(0,0,0,0.1); box-shadow: 0 -10px 40px rgba(0,0,0,0.15); }
+      [data-theme="light"] .pwa-install-title { color: #1a202c; }
+      [data-theme="light"] .pwa-install-desc { color: rgba(0,0,0,0.6); }
+      [data-theme="light"] .pwa-dismiss-btn { border-color: rgba(0,0,0,0.2); background: rgba(0,0,0,0.05); color: rgba(0,0,0,0.6); }
+      @media (max-width: 600px) {
+        .pwa-install-content { flex-wrap: wrap; gap: 12px; }
+        .pwa-install-icon { display: none; }
+        .pwa-install-text { flex: 1 1 100%; order: 1; }
+        .pwa-install-btn { flex: 1; justify-content: center; order: 2; padding: 12px 20px; }
+        .pwa-dismiss-btn { position: absolute; top: 12px; right: 12px; order: 3; }
+        .pwa-install-banner { padding: 16px 16px 20px; }
+      }
+    `;
+    document.head.appendChild(style);
+  },
+
+  setupUserInteractionDetection() {
+    const handleInteraction = () => {
+      if (this.hasInteracted) return;
+      this.hasInteracted = true;
+      if (this.deferredPrompt && !this.isBannerDismissed) this.showInstallBanner();
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
+    document.addEventListener('click', handleInteraction, { once: true });
+    document.addEventListener('touchstart', handleInteraction, { once: true });
+  },
+
+  isPWAInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true ||
+           document.referrer.includes('android-app://') ||
+           window.matchMedia('(display-mode: fullscreen)').matches ||
+           window.matchMedia('(display-mode: minimal-ui)').matches;
+  },
+
+  wasBannerDismissed() {
+    try {
+      const dismissed = localStorage.getItem('pwa_install_banner_dismissed');
+      const dismissedTime = parseInt(dismissed);
+      if (dismissedTime && Date.now() - dismissedTime < 7 * 24 * 60 * 60 * 1000) return true;
+      return false;
+    } catch (e) { return false; }
+  },
+
+  showInstallBanner() {
+    const banner = document.getElementById('pwaInstallBanner');
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (!banner) { this.createInstallBanner(); return; }
+    const progressBar = banner.querySelector('.install-progress-bar');
+    if (progressBar) { progressBar.style.width = '30%'; setTimeout(() => { progressBar.style.width = '60%'; }, 500); }
+    banner.classList.add('show');
+    if (installBtn && !this.deferredPrompt) installBtn.innerHTML = '<span class="install-icon">📱</span> Comment installer';
+  },
+
+  hideInstallBanner() {
+    const banner = document.getElementById('pwaInstallBanner');
+    if (banner) {
+      banner.classList.remove('show');
+      setTimeout(() => {
+        banner.remove();
+        const styles = document.getElementById('pwa-install-styles');
+        if (styles) styles.remove();
+      }, 400);
+    }
+  },
+
+  dismissBanner() {
+    this.isBannerDismissed = true;
+    this.hideInstallBanner();
+    try { localStorage.setItem('pwa_install_banner_dismissed', Date.now().toString()); }
+    catch (e) { console.warn('Cannot save banner state'); }
+  },
+
+  resetDismissalState() {
+    try { localStorage.removeItem('pwa_install_banner_dismissed'); }
+    catch (e) { console.warn('Cannot reset banner state'); }
+  },
+
+  async installPWA() {
+    const installBtn = document.getElementById('pwaInstallBtn');
+    if (this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      if (installBtn) { installBtn.innerHTML = '<span class="install-icon">⏳</span> Installation...'; installBtn.disabled = true; }
+      const { outcome } = await this.deferredPrompt.userChoice;
+      this.deferredPrompt = null;
+      if (outcome !== 'accepted' && installBtn) { installBtn.innerHTML = '<span class="install-icon">⬇️</span> Installer'; installBtn.disabled = false; }
+    } else {
+      this.showInstallInstructions();
+    }
+  },
+
+  showInstallInstructions() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    const title = isIOS ? '📱 Installation iOS' : isAndroid ? '📱 Installation Android' : '💻 Installation PC';
+    const content = isIOS ? '<ol style="text-align:left;line-height:2;padding-left:20px;font-size:14px;"><li>Appuyez sur <strong style="color:#ff7a59;">Partager</strong> 📤 en bas</li><li>Appuyez sur <strong style="color:#ff7a59;">Sur l\'écran d\'accueil</strong></li><li>Appuyez sur <strong style="color:#ff7a59;">Ajouter</strong></li></ol>' : isAndroid ? '<ol style="text-align:left;line-height:2;padding-left:20px;font-size:14px;"><li>Appuyez sur <strong style="color:#ff7a59;">⋮</strong> menu en haut</li><li>Appuyez sur <strong style="color:#ff7a59;">Installer</strong></li><li>Confirmez</li></ol>' : '<div style="text-align:left;background:rgba(255,122,89,0.1);padding:16px;border-radius:12px;"><p style="font-size:13px;"><strong>Chrome:</strong> Menu → Installer</p><p style="font-size:13px;margin-top:8px;"><strong>Edge:</strong> Menu → Apps → Installer</p></div>';
+    this.showModal(title, content);
+  },
+
+  showModal(title, content) {
+    const existingModal = document.getElementById('pwa-install-modal');
+    if (existingModal) existingModal.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pwa-install-modal';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:10003;animation:modalFadeIn 0.3s ease forwards;';
+    overlay.innerHTML = '<div style="background:linear-gradient(145deg,#1a2332,#0f1724);border:1px solid rgba(255,122,89,0.3);border-radius:24px;padding:32px;max-width:420px;width:90%;text-align:center;position:relative;transform:scale(0.9);animation:modalScaleIn 0.3s ease forwards;box-shadow:0 25px 60px rgba(0,0,0,0.5);"><button id="pwaModalClose" style="position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);background:transparent;color:rgba(255,255,255,0.7);font-size:16px;cursor:pointer;">✕</button><div style="margin-bottom:8px;"><svg width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="url(#modal-grad)"/><path d="M20 24h24v4H20v-4zm0 6h24v4H20v-4zm0 6h16v4H20v-4z" fill="white"/><circle cx="48" cy="20" r="10" fill="#ff7a59"/><defs><linearGradient id="modal-grad" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#ff7a59"/><stop offset="1" stop-color="#ffb86b"/></linearGradient></defs></svg></div><h3 style="margin:20px 0 12px;font-size:20px;font-weight:700;color:#fff;">' + title + '</h3><div style="color:rgba(255,255,255,0.7);font-size:14px;line-height:1.6;">' + content + '</div><button id="pwaModalBtn" style="margin-top:24px;padding:14px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff7a59,#ffb86b);color:#081020;font-weight:700;font-family:inherit;font-size:15px;cursor:pointer;box-shadow:0 4px 15px rgba(255,122,89,0.4);">J\'ai compris !</button></div>';
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes modalFadeIn{to{opacity:1}}@keyframes modalScaleIn{to{transform:scale(1)}}[data-theme="light"] .pwa-modal{background:linear-gradient(145deg,#fff,#f5f7fa);border:1px solid rgba(0,0,0,0.1);box-shadow:0 25px 60px rgba(0,0,0,0.2)}[data-theme="light"] .pwa-modal h3{color:#1a202c}[data-theme="light"] .pwa-modal p,[data-theme="light"] .pwa-modal div{color:rgba(0,0,0,0.7)!important}';
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+
+    const closeModal = () => { overlay.style.opacity = '0'; setTimeout(() => { overlay.remove(); style.remove(); }, 300); };
+    document.getElementById('pwaModalClose').addEventListener('click', closeModal);
+    document.getElementById('pwaModalBtn').addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => pwaInstallManager.init());

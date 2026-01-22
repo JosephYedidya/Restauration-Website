@@ -8,14 +8,35 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Bistro Rive" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
   <link rel="manifest" href="./manifest.json" />
   <title>Bistro Rive — Restaurant & Livraison</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
- <link rel="stylesheet" href="./Style.css">
+<link rel="stylesheet" href="./Style.css">
+ <link rel="stylesheet" href="./additional-styles.css">
 </head>
 <body>
+  <!-- PWA Install Banner -->
+  <div class="pwa-install-banner" id="pwaInstallBanner">
+    <div class="pwa-install-content">
+      <div class="pwa-install-icon">📱</div>
+      <div class="pwa-install-text">
+        <div class="pwa-install-title">Installez l'application</div>
+        <div class="pwa-install-desc">Ajoutez Bistro Rive à votre écran d'accueil pour une expérience optimale</div>
+      </div>
+      <button class="pwa-install-btn" id="pwaInstallBtn">Installer</button>
+      <button class="pwa-dismiss-btn" id="pwaDismissBtn" aria-label="Fermer">×</button>
+    </div>
+  </div>
+
   <div class="app">
     <header class="fade-in">
       <div class="brand">
@@ -60,8 +81,32 @@
       </div>
     </section>
 
+    <!-- Daily Specials Section -->
+    <section id="specials">
+      <h2 class="section-title">🍽️ Plats du Jour</h2>
+      <div class="specials-grid" id="specialsGrid">
+        <!-- Specials will be generated dynamically -->
+      </div>
+      <div class="specials-timer" id="specialsTimer">
+        <span class="timer-label">Offre spéciale expire dans:</span>
+        <span class="timer-value" id="countdown">--:--:--</span>
+      </div>
+    </section>
+
     <section id="menu">
-      <h2 class="section-title">Notre Menu</h2>
+      <div class="menu-header">
+        <h2 class="section-title">Notre Menu</h2>
+        <div class="sort-controls">
+          <label for="sortSelect">Trier par:</label>
+          <select id="sortSelect" aria-label="Trier les plats">
+            <option value="default">Par défaut</option>
+            <option value="price-asc">Prix croissant</option>
+            <option value="price-desc">Prix décroissant</option>
+            <option value="name">Nom (A-Z)</option>
+            <option value="rating">Meilleures notes</option>
+          </select>
+        </div>
+      </div>
       <div class="grid" id="menuGrid">
         <!-- cards générées dynamiquement -->
       </div>
@@ -72,6 +117,7 @@
       <div class="reviews-container">
         <div class="review-form">
           <h3>Laisser un avis</h3>
+          <p class="review-form-subtitle">Partagez votre expérience avec nous et aidez d'autres clients</p>
           <form id="reviewForm">
             <div class="form-group">
               <input type="text" id="reviewName" placeholder="Votre nom" required aria-label="Votre nom">
@@ -120,7 +166,128 @@
       </div>
     </section>
 
+    <!-- Reservation Section -->
+    <section id="reservation">
+      <h2 class="section-title">📅 Réservation</h2>
+      <div class="reservation-container">
+        <div class="reservation-info">
+          <h3>Réservez votre table</h3>
+          <p>Venez découvrir notre cuisine contemporaine dans un cadre chaleureux</p>
+          
+          <div class="reservation-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <div>
+                <strong>Adresse</strong>
+                <p>123 Rue de la Gastronomie<br>75001 Paris, France</p>
+              </div>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📞</span>
+              <div>
+                <strong>Téléphone</strong>
+                <p><a href="tel:+33123456789">+33 1 23 45 67 89</a></p>
+              </div>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">🕐</span>
+              <div>
+                <strong>Heures d'ouverture</strong>
+                <p>Lundi - Jeudi: 12h00 - 22h30<br>Vendredi - Samedi: 12h00 - 23h30<br>Dimanche: 12h00 - 21h30</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="reservation-form-container">
+          <form id="reservationForm" class="reservation-form">
+            <h4>Formulaire de réservation</h4>
+            <div class="form-group">
+              <label for="resName">Nom complet</label>
+              <input type="text" id="resName" placeholder="Votre nom" required>
+            </div>
+            <div class="form-group">
+              <label for="resEmail">Email</label>
+              <input type="email" id="resEmail" placeholder="votre@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="resPhone">Téléphone</label>
+              <input type="tel" id="resPhone" placeholder="+33" required>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="resDate">Date</label>
+                <input type="date" id="resDate" required>
+              </div>
+              <div class="form-group">
+                <label for="resTime">Heure</label>
+                <select id="resTime" required>
+                  <option value="">Sélectionnez</option>
+                  <option value="12:00">12:00</option>
+                  <option value="12:30">12:30</option>
+                  <option value="13:00">13:00</option>
+                  <option value="13:30">13:30</option>
+                  <option value="19:00">19:00</option>
+                  <option value="19:30">19:30</option>
+                  <option value="20:00">20:00</option>
+                  <option value="20:30">20:30</option>
+                  <option value="21:00">21:00</option>
+                  <option value="21:30">21:30</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="resGuests">Nombre de personnes</label>
+              <select id="resGuests" required>
+                <option value="">Sélectionnez</option>
+                <option value="1">1 personne</option>
+                <option value="2">2 personnes</option>
+                <option value="3">3 personnes</option>
+                <option value="4">4 personnes</option>
+                <option value="5">5 personnes</option>
+                <option value="6">6 personnes</option>
+                <option value="7-10">7-10 personnes</option>
+                <option value="10+">Plus de 10 personnes</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="resMessage">Demandes spéciales (allergies, occasion, etc.)</label>
+              <textarea id="resMessage" rows="3" placeholder="Dites-nous tout..."></textarea>
+            </div>
+            <button type="submit" class="btn">Confirmer la réservation</button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="map-container">
+        <iframe 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.9916256937595!2d2.292292615674431!3d48.85837007928746!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e66e2964e34e2d%3A0x8ddca9ee380ef7e0!2sEiffel%20Tower!5e0!3m2!1sen!2sfr!4v1699999999999!5m2!1sen!2sfr" 
+          width="100%" 
+          height="300" 
+          style="border:0;" 
+          allowfullscreen="" 
+          loading="lazy" 
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Notre localisation">
+        </iframe>
+      </div>
+    </section>
+
     <footer id="contact">
+      <div class="social-links">
+        <a href="https://instagram.com" target="_blank" rel="noopener" class="social-link" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </a>
+        <a href="https://facebook.com" target="_blank" rel="noopener" class="social-link" aria-label="Facebook">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </a>
+        <a href="https://twitter.com" target="_blank" rel="noopener" class="social-link" aria-label="Twitter">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://tripadvisor.com" target="_blank" rel="noopener" class="social-link" aria-label="TripAdvisor">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12.025.692c4.287 0 7.125 1.541 7.125 4.475 0 4.2-3.975 7.05-8.475 11.575-4.5 4.525-8.475 7.375-8.475 11.575 0 2.934 2.625 4.475 7.125 4.475 3.6 0 6.375-1.125 8.025-2.7L21.75 24l2.25-2.7H12.6c-4.125 0-7.35-1.275-9.3-3.375 1.95-2.1 4.35-3.375 7.275-3.375 4.125 0 6.975 1.65 6.975 4.2 0 .525-.075 1.05-.225 1.575L15.6 16.05c-.75.3-1.35.525-1.95.525-2.1 0-3.75-1.8-3.75-4.275 0-2.475 1.8-4.275 3.75-4.275.525 0 1.05.15 1.575.375l1.65-2.175c-.75-.375-1.65-.6-2.625-.6zm0 2.925c-1.575 0-2.775 1.2-2.775 2.7 0 1.5 1.2 2.7 2.775 2.7 1.575 0 2.775-1.2 2.775-2.7 0-1.5-1.2-2.7-2.775-2.7z"/></svg>
+        </a>
+      </div>
       <div class="footer-links">Réservations · Livraison · Événements privés</div>
       <div>© 2025 Bistro Rive — Design moderne & élégant</div>
     </footer>
@@ -174,6 +341,9 @@
     </div>
   </div>
 
- <script src="./Script.js"></script>
+<script src="./Script.js"></script>
+  <script src="./features.js"></script>
+  <script src="./pwa-install.js"></script>
+  <script src="./reviews-carousel.js"></script>
 </body>
 </html>

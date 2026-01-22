@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="256" fill="url(#gradient)"/>
+  <circle cx="256" cy="256" r="220" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="8"/>
+  <g fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round">
+    <path d="M180 140 L180 280"/>
+    <path d="M180 140 C180 120 200 120 200 140 C200 160 180 160 180 180"/>
+    <path d="M180 180 C180 160 200 160 200 180 C200 200 180 200 180 220"/>
+    <path d="M180 220 C180 200 200 200 200 220 C200 240 180 240 180 260"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round">
+    <path d="M332 140 L332 340"/>
+    <path d="M332 140 Q350 180 332 220"/>
+  </g>
+  <text x="256" y="380" font-family="Georgia, serif" font-size="72" font-weight="bold" fill="#ffffff" text-anchor="middle">BR</text>
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff7a59"/>
+      <stop offset="100%" style="stop-color:#ffb86b"/>
+    </linearGradient>
+  </defs>
+</svg>

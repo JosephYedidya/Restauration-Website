@@ -1,4 +1,4 @@
-// ========================================
+ // ========================================
 // NOUVELLES FONCTIONNALITÉS
 // Daily Specials, Sort, Reservation, Timer
 // ========================================
@@ -8,7 +8,7 @@ const specialsData = [
   {
     id: 100,
     title: 'Pavé de Saumon rôti',
-    desc: 'Saumon fresh, légumes de saison, sauce beurre blanc citronné',
+    desc: 'Saumon sauvage, asperges grillées, sauce hollandaise au citron, échalotes confites',
     price: 12500,
     originalPrice: 15000,
     img: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&h=400&fit=crop&q=80',
@@ -18,7 +18,7 @@ const specialsData = [
   {
     id: 101,
     title: 'Carré d\'Agneau',
-    desc: 'Agneau du Limousin, gratin dauphinois, romarin frais',
+    desc: 'Agneau de Nouvelle Zélande, gratin dauphinois, romarin frais, jus corsé au thym',
     price: 18500,
     originalPrice: 22000,
     img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop&q=80',
@@ -28,10 +28,10 @@ const specialsData = [
   {
     id: 102,
     title: 'Lassi Mangue Maison',
-    desc: 'Lassi épais, mangue Alphonso, cardamome, amandes',
+    desc: 'Lassi onctueux, mangue Alphonso, cardamome, pistaches grillées, miel de lavande',
     price: 3500,
     originalPrice: 4500,
-    img: 'https://images.unsplash.com/photo-1601058268499-e52642d18d89?w=600&h=400&fit=crop&q=80',
+    img: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&h=400&fit=crop&q=80',
     badge: 'Offre Limitée',
     discount: '22%'
   }
@@ -172,9 +172,8 @@ const reservationManager = {
     const guests = document.getElementById('resGuests').value;
     const message = document.getElementById('resMessage').value.trim();
 
-    if (!name || !email || !phone || !date || !time || !guests) {
-      if (typeof cartManager !== 'undefined' && cartManager.showToast) {
-        cartManager.showToast('Veuillez remplir tous les champs obligatoires', 'warning');
+
+        cartManager.showModal('Champs manquants', 'Veuillez remplir tous les champs obligatoires', 'warning');
       } else {
         alert('Veuillez remplir tous les champs obligatoires');
       }
@@ -191,19 +190,19 @@ const reservationManager = {
 📞 Téléphone: ${phone}
 ${message ? `📝 Notes: ${message}` : ''}
 
-✅ Un email de confirmation a été envoyé à ${email}
+✅ Un e-mail de confirmation a été envoyé à ${email}
 📱 Nous vous appellerons au ${phone} pour confirmer
 
 Merci pour votre réservation ! 🍽️
     `;
 
-    alert(reservationDetails);
+
     document.getElementById('reservationForm').reset();
     if (typeof cartManager !== 'undefined' && cartManager.showToast) {
       cartManager.showToast('Réservation effectuée avec succès !', 'success');
     }
-  }
-};
+    console.log(reservationDetails);
+
 
 // ========================================
 // INITIALISATION DES NOUVELLES FONCTIONNALITÉS

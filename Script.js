@@ -107,8 +107,8 @@ const menuManager = {
       
       // Gestion d'erreur pour les images
       img.onerror = function() {
-        this.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop&q=80';
-        this.alt = 'Image non disponible';
+        this.src = 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&h=400&fit=crop&q=80';
+        this.alt = 'Fine dining dish';
       };
       
       // Bouton favori

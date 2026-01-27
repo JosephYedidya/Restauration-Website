@@ -1,14 +1,26 @@
 // Service Worker pour Bistro Rive - PWA
-const CACHE_NAME = 'bistro-rive-v1.0.0';
-const STATIC_CACHE = 'bistro-rive-static-v1.0.0';
-const DYNAMIC_CACHE = 'bistro-rive-dynamic-v1.0.0';
+const CACHE_NAME = 'bistro-rive-v2.0.0';
+const STATIC_CACHE = 'bistro-rive-static-v2.0.0';
+const DYNAMIC_CACHE = 'bistro-rive-dynamic-v2.0.0';
+const IMAGE_CACHE = 'bistro-rive-images-v2.0.0';
+
+// URLs externes autorisées pour le cache
+const ALLOWED_EXTERNAL_URLS = [
+  'images.unsplash.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com'
+];
 
 // Fichiers à mettre en cache pour le fonctionnement hors-ligne
 const STATIC_ASSETS = [
   './',
   './index.html',
   './Style.css',
+  './additional-styles.css',
   './Script.js',
+  './features.js',
+  './reviews-carousel.js',
+  './pwa-install.js',
   './manifest.json',
   './icon.svg',
   './icon-192.png',
@@ -35,17 +47,19 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activation du Service Worker
+// Activation du Service Worker avec nettoyage des anciens caches
 self.addEventListener('activate', (event) => {
   console.log('🍽️ Service Worker: Activation en cours...');
   
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
-        // Supprimer les anciens caches qui ne sont plus utilisés
+        // Supprimer les anciens caches
         const cachesToDelete = cacheNames.filter((cacheName) => {
-          return cacheName !== STATIC_CACHE && 
-                 cacheName !== DYNAMIC_CACHE;
+          return cacheName.startsWith('bistro-rive') && 
+                 cacheName !== STATIC_CACHE && 
+                 cacheName !== DYNAMIC_CACHE &&
+                 cacheName !== IMAGE_CACHE;
         });
         
         if (cachesToDelete.length > 0) {
@@ -66,43 +80,93 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Stratégie de cache: Stale-While-Revalidate
+// Stratégie de cache intelligente
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorer les requêtes non HTTP/HTTPS (comme les données de chrome extension)
+  // Ignorer les requêtes non HTTP/HTTPS
   if (!url.protocol.startsWith('http')) {
     return;
   }
 
-  // Ignorer les requêtes vers d'autres domaines (comme Unsplash) sauf pour les images
-  if (url.origin !== location.origin) {
-    // Permettre les images de Unsplash pour le moment
-    if (request.destination === 'image') {
-      event.respondWith(networkFirstStrategy(request));
-    }
+  // Gestion des images - Stratégie: Cache First avec Network Fallback
+  if (request.destination === 'image') {
+    event.respondWith(cacheFirstForImages(request));
     return;
   }
 
-  event.respondWith(staleWhileRevalidate(request));
+  // Gestion des requêtes locales - Stratégie: Stale While Revalidate
+  if (url.origin === location.origin) {
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
+
+  // Gestion des ressources externes autorisées - Stratégie: Network First
+  if (ALLOWED_EXTERNAL_URLS.some(domain => url.hostname.includes(domain))) {
+    event.respondWith(networkFirstStrategy(request));
+    return;
+  }
+
+  // Toutes les autres requêtes - Stratégie: Network Only
+  event.respondWith(fetch(request).catch(() => {
+    // Retourner une réponse offline générique pour les navigations
+    if (request.mode === 'navigate') {
+      return caches.match('./index.html');
+    }
+    return new Response('Offline', { status: 503 });
+  }));
 });
 
-// Stratégie Stale-While-Revalidate pour les ressources locales
+// Stratégie Cache First pour les images
+function cacheFirstForImages(request) {
+  return caches.match(request)
+    .then((cachedResponse) => {
+      if (cachedResponse) {
+        // Retourner le cache et mettre à jour en arrière-plan
+        fetchAndCacheImage(request);
+        return cachedResponse;
+      }
+
+      // Pas de cache, faire la requête réseau
+      return fetchAndCacheImage(request);
+    })
+    .catch((error) => {
+      console.error('🍽️ Service Worker: Erreur image:', error);
+      return null;
+    });
+}
+
+function fetchAndCacheImage(request) {
+  return fetch(request)
+    .then((response) => {
+      if (!response || response.status !== 200 || response.type !== 'opaque') {
+        return response;
+      }
+
+      // Cloner pour ne pas bloquer la réponse
+      const responseToCache = response.clone();
+
+      caches.open(IMAGE_CACHE)
+        .then((cache) => {
+          cache.put(request, responseToCache);
+        });
+
+      return response;
+    });
+}
+
+// Stratégie Stale While Revalidate pour les ressources locales
 function staleWhileRevalidate(request) {
   return caches.match(request)
     .then((cachedResponse) => {
-      // Faire la requête réseau en arrière-plan
       const fetchPromise = fetch(request)
         .then((response) => {
-          // Vérifier si la réponse est valide
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
 
-          // Cloner la réponse pour la mettre en cache
           const responseToCache = response.clone();
-
           caches.open(DYNAMIC_CACHE)
             .then((cache) => {
               cache.put(request, responseToCache);
@@ -115,17 +179,11 @@ function staleWhileRevalidate(request) {
           return null;
         });
 
-      // Retourner le cache s'il existe, sinon attendre la réponse réseau
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetchPromise;
+      return cachedResponse || fetchPromise;
     })
     .catch((error) => {
       console.error('🍽️ Service Worker: Erreur dans staleWhileRevalidate:', error);
       
-      // Retourner une page offline si disponible et si c'est une navigation
       if (request.mode === 'navigate') {
         return caches.match('./index.html');
       }
@@ -138,15 +196,11 @@ function staleWhileRevalidate(request) {
 function networkFirstStrategy(request) {
   return fetch(request)
     .then((response) => {
-      // Vérifier si la réponse est valide
       if (!response || response.status !== 200) {
-        // Retourner le cache si disponible
         return caches.match(request);
       }
 
-      // Cloner la réponse pour la mettre en cache
       const responseToCache = response.clone();
-
       caches.open(DYNAMIC_CACHE)
         .then((cache) => {
           cache.put(request, responseToCache);
@@ -155,62 +209,80 @@ function networkFirstStrategy(request) {
       return response;
     })
     .catch(() => {
-      // Retourner le cache en cas d'erreur réseau
       return caches.match(request);
     });
 }
 
-// Gestion des mises à jour du cache
+// Gestion des messages depuis les clients
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') {
     self.skipWaiting();
   }
-});
-
-// Background sync pour les commandes (si nécessaire dans le futur)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-orders') {
-    console.log('🍽️ Service Worker: Synchronisation des commandes en arrière-plan');
+  
+  if (event.data === 'clearAllCaches') {
+    caches.keys().then((cacheNames) => {
+      cacheNames.forEach((cacheName) => {
+        caches.delete(cacheName);
+      });
+    });
+  }
+  
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
 
-// Notifications push (si nécessaire dans le futur)
+// Background sync pour les commandes
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-orders') {
+    console.log('🍽️ Service Worker: Synchronisation des commandes en arrière-plan');
+    // Implémenter la synchronisation des commandes si nécessaire
+  }
+});
+
+// Notifications push
 self.addEventListener('push', (event) => {
-  // Vérifier si event.data existe
-  const data = event.data ? event.data.text() : 'Nouvelle notification de Bistro Rive';
+  const data = event.data ? event.data.json() : {
+    title: 'Bistro Rive',
+    body: 'Nouvelle notification de Bistro Rive',
+    icon: 'icon-192.png'
+  };
   
   const options = {
-    body: data,
-    icon: 'icon-192.png',
+    body: data.body || 'Nouvelle notification',
+    icon: data.icon || 'icon-192.png',
     badge: 'icon-192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
-      primaryKey: 1
+      primaryKey: data.id || 1,
+      url: data.url || './'
     },
     actions: [
       {
-        action: 'explore',
+        action: 'view',
         title: 'Voir'
       },
       {
         action: 'close',
         title: 'Fermer'
       }
-    ]
+    ],
+    tag: data.tag || 'bistro-notification',
+    renotify: true
   };
 
   event.waitUntil(
-    self.registration.showNotification('Bistro Rive', options)
+    self.registration.showNotification(data.title || 'Bistro Rive', options)
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'explore') {
+  if (event.action === 'view' || !event.action) {
     event.waitUntil(
-      clients.openWindow('./')
+      clients.openWindow(event.notification.data.url || './')
     );
   }
 });
@@ -224,5 +296,5 @@ self.addEventListener('unhandledrejection', (event) => {
   console.error('🍽️ Service Worker: Promesse rejetée non gérée:', event.reason);
 });
 
-console.log('🍽️ Service Worker: Bistro Rive PWA chargé avec succès');
+console.log('🍽️ Service Worker: Bistro Rive PWA v2.0 chargé avec succès');
 

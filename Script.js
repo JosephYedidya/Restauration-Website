@@ -162,7 +162,7 @@ const menuManager = {
     
     // Message de détails
     const message = `${item.title}\n\n${item.desc}\n\nPrix: ${utils.formatCurrency(item.price)}\nCatégorie: ${item.tag}`;
-    alert(message);
+    cartManager.showModal('Détails du plat', message, 'info');
   }
 };
 
@@ -316,6 +316,7 @@ const cartManager = {
       cartList.innerHTML = '<div class="cart-empty">Votre panier est vide</div>';
       totalEl.textContent = '0 FCFA';
       badgeEl.textContent = '0';
+      this.updateCartBadge();
       return;
     }
     
@@ -386,18 +387,16 @@ const cartManager = {
     });
     
     const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    summary += `━━━━━━━━━━━━━━━━━━━━\n`;
-    summary += `Total: ${utils.formatCurrency(total)}\n\n`;
-    summary += `✓ Merci pour votre commande !\n`;
-    summary += `Temps de préparation estimé : 25-35 min`;
+    summary += `━━━━━━━━━━━━━━━━━━━━\nTOTAL: ${utils.formatCurrency(total)}\n\n`;
+    summary += '📱 Voulez-vous confirmer cette commande ?';
     
-    alert(summary);
-    
-    // Vider le panier après commande
-    state.cart = [];
-    this.render();
-    this.saveCart();
-    this.showToast('Commande validée avec succès !', 'success');
+    this.showModal('Commander', summary, 'info', () => {
+      // Vider le panier
+      state.cart = [];
+      this.render();
+      this.saveCart();
+      this.showToast('Commande confirmée ! 🎉\nNous vous appellerons bientôt.', 'success');
+    });
   },
 
   toggleCart() {
@@ -432,11 +431,18 @@ const cartManager = {
   updateCartBadge() {
     const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
     const badgeNav = document.getElementById('cartBadgeNav');
+    const badgeEl = document.getElementById('cartBadge');
     
     if (badgeNav) {
       badgeNav.textContent = totalItems;
-      
-      // Animation du badge
+    }
+    
+    if (badgeEl) {
+      badgeEl.textContent = totalItems;
+    }
+    
+    // Animation du badge
+    if (badgeNav) {
       badgeNav.style.transform = 'scale(1.3)';
       setTimeout(() => {
         badgeNav.style.transform = 'scale(1)';
@@ -465,6 +471,71 @@ const cartManager = {
       toast.classList.remove('toast-show');
       setTimeout(() => toast.remove(), 300);
     }, 3000);
+  },
+
+  // Modal/Popup Manager
+  showModal(title, message, type = 'info', onConfirm = null, onCancel = null) {
+    const overlay = document.getElementById('modalOverlay');
+    const iconEl = document.getElementById('modalIcon');
+    const titleEl = document.getElementById('modalTitle');
+    const messageEl = document.getElementById('modalMessage');
+    const buttonsEl = document.getElementById('modalButtons');
+    
+    // Set content
+    const icons = {
+      success: '✓',
+      error: '✗',
+      warning: '⚠',
+      info: 'ℹ'
+    };
+    
+    iconEl.className = 'modal-icon ' + type;
+    iconEl.textContent = icons[type] || icons.info;
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // Create buttons
+    buttonsEl.innerHTML = '';
+    
+    if (onConfirm) {
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'modal-btn primary';
+      confirmBtn.textContent = 'OK';
+      confirmBtn.addEventListener('click', () => {
+        overlay.classList.remove('active');
+        onConfirm();
+      });
+      buttonsEl.appendChild(confirmBtn);
+    } else {
+      const okBtn = document.createElement('button');
+      okBtn.className = 'modal-btn primary';
+      okBtn.textContent = 'OK';
+      okBtn.addEventListener('click', () => {
+        overlay.classList.remove('active');
+      });
+      buttonsEl.appendChild(okBtn);
+    }
+    
+    if (onCancel) {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'modal-btn secondary';
+      cancelBtn.textContent = 'Annuler';
+      cancelBtn.addEventListener('click', () => {
+        overlay.classList.remove('active');
+        if (onCancel) onCancel();
+      });
+      buttonsEl.appendChild(cancelBtn);
+    }
+    
+    // Show modal
+    overlay.classList.add('active');
+    
+    // Close on overlay click
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('active');
+      }
+    };
   }
 };
 
@@ -791,6 +862,176 @@ const themeManager = {
   }
 };
 
+// Gestion des plats du jour (Specials)
+const specialsManager = {
+  init() {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.renderSpecials());
+    } else {
+      this.renderSpecials();
+    }
+  },
+
+  renderSpecials() {
+    const specialsGrid = document.getElementById('specialsGrid');
+    if (!specialsGrid) return;
+
+    const specialsData = [
+      {
+        id: 100,
+        title: 'Pavé de Saumon rôti',
+        desc: 'Saumon sauvage, asperges grillées, sauce hollandaise au citron, échalotes confites',
+        price: 12500,
+        originalPrice: 15000,
+        img: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&h=400&fit=crop&q=80',
+        badge: 'Plat du Jour',
+        discount: '17%'
+      },
+      {
+        id: 101,
+        title: 'Carré d\'Agneau',
+        desc: 'Agneau de Nouvelle Zélande, gratin dauphinois, romarin frais, jus corsé au thym',
+        price: 18500,
+        originalPrice: 22000,
+        img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&h=400&fit=crop&q=80',
+        badge: 'Chef\'s Choice',
+        discount: '16%'
+      },
+      {
+        id: 102,
+        title: 'Lassi Mangue Maison',
+        desc: 'Lassi onctueux, mangue Alphonso, cardamome, pistaches grillées, miel de lavande',
+        price: 3500,
+        originalPrice: 4500,
+        img: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&h=400&fit=crop&q=80',
+        badge: 'Offre Limitée',
+        discount: '22%'
+      }
+    ];
+
+    specialsGrid.innerHTML = '';
+
+    specialsData.forEach((special, index) => {
+      const specialCard = document.createElement('div');
+      specialCard.className = 'special-card fade-in';
+      specialCard.style.animationDelay = `${index * 0.1}s`;
+
+      specialCard.innerHTML = `
+        <span class="special-badge">${special.badge}</span>
+        <span class="special-timer-badge">--:--:--</span>
+        <img src="${special.img}" alt="${special.title}" class="special-card-img" loading="lazy">
+        <div class="special-card-content">
+          <h4>${special.title}</h4>
+          <p>${special.desc}</p>
+          <div class="special-price">
+            <span class="current">${utils.formatCurrency(special.price)}</span>
+            <span class="original">${utils.formatCurrency(special.originalPrice)}</span>
+            <span class="discount">-${special.discount}</span>
+          </div>
+        </div>
+      `;
+
+      specialsGrid.appendChild(specialCard);
+    });
+  }
+};
+
+// Gestion du tri du menu
+const sortManager = {
+  init() {
+    const sortSelect = document.getElementById('sortSelect');
+    if (!sortSelect) return;
+
+    sortSelect.addEventListener('change', () => {
+      this.sortMenu(sortSelect.value);
+    });
+  },
+
+  sortMenu(sortType) {
+    let sortedMenu = [...state.menu];
+
+    switch (sortType) {
+      case 'price-asc':
+        sortedMenu.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        sortedMenu.sort((a, b) => b.price - a.price);
+        break;
+      case 'name':
+        sortedMenu.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'rating':
+        sortedMenu.sort((a, b) => b.id - a.id);
+        break;
+      default:
+        sortedMenu = state.menu;
+    }
+
+    menuManager.render(sortedMenu);
+  }
+};
+
+// Gestion des réservations
+const reservationManager = {
+  init() {
+    const form = document.getElementById('reservationForm');
+    if (!form) return;
+
+    // Définir la date minimum à aujourd'hui
+    const dateInput = document.getElementById('resDate');
+    if (dateInput) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.setAttribute('min', today);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleReservation();
+    });
+  },
+
+  handleReservation() {
+    const name = document.getElementById('resName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
+    const date = document.getElementById('resDate').value;
+    const time = document.getElementById('resTime').value;
+    const guests = document.getElementById('resGuests').value;
+    const message = document.getElementById('resMessage').value.trim();
+
+    if (!name || !email || !phone || !date || !time || !guests) {
+      cartManager.showModal('Champs manquants', 'Veuillez remplir tous les champs obligatoires', 'warning');
+      return;
+    }
+
+    const reservationDetails = `
+🗓️ **Réservation confirmée!**
+
+📅 Date: ${date} à ${time}
+👥 Personnes: ${guests}
+👤 Nom: ${name}
+📧 Email: ${email}
+📞 Téléphone: ${phone}
+${message ? `📝 Notes: ${message}` : ''}
+
+✅ Un email de confirmation a été envoyé à ${email}
+📱 Nous vous appellerons au ${phone} pour confirmer
+
+Merci pour votre réservation ! 🍽️
+    `;
+
+    // Afficher la confirmation
+    cartManager.showModal('Réservation Confirmée! 🎉', reservationDetails, 'success');
+    
+    // Réinitialiser le formulaire
+    document.getElementById('reservationForm').reset();
+    
+    // Afficher le toast de confirmation
+    cartManager.showToast('Réservation effectuée avec succès !', 'success');
+  }
+};
+
 // Initialisation de l'application
 const app = {
   init() {
@@ -806,6 +1047,11 @@ const app = {
     reviewManager.init();
     this.initScrollToTop();
     pwaInstallManager.init();
+    
+    // Initialiser les nouvelles fonctionnalités
+    specialsManager.init();
+    sortManager.init();
+    reservationManager.init();
     
     // Gestion du bouton de commande
     document.getElementById('checkoutBtn').addEventListener('click', () => {
@@ -1078,7 +1324,7 @@ const pwaInstallManager = {
         instructions = '💡 Pour installer l\'application:\n\n- Chrome: Menu → Installer Bistro Rive\n- Edge: Menu → Applications → Installer ce site';
       }
 
-      alert(`Installez Bistro Rive\n\n${instructions}`);
+      cartManager.showModal('Installer Bistro Rive', instructions, 'info');
     }
   }
 };
@@ -1089,20 +1335,3 @@ if (document.readyState === 'loading') {
 } else {
   app.init();
 }
-
-
- 
-
-   // Alerte visuelle simple
-   function showAlert() {
-    const box = document.getElementById("alertBox");
-    box.style.display = "block";
-    setTimeout(() => { box.style.display = "none"; }, 2000);
-    return false;
-  }
-
-  // Obfuscation légère du JavaScript
-  (function(){
-    const msg = ["Ce site appartient à Joseph Yedidya", "Toute copie est interdite 🚫"];
-    console.log(msg[Math.floor(Math.random()*msg.length)]);
-  })();

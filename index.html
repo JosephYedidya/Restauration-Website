@@ -19,7 +19,9 @@
   <title>Bistro Rive — Restaurant & Livraison</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="./Style.css">
  <link rel="stylesheet" href="./additional-styles.css">
 </head>
@@ -77,7 +79,7 @@
       </div>
 
       <div class="hero-media fade-in stagger-2">
-        <img id="heroImg" src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=600&fit=crop&q=80" alt="Plat vedette du restaurant" loading="eager">
+        <img id="heroImg" src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800&h=600&fit=crop&q=80" alt="Fine dining experience" loading="eager" decoding="async" fetchpriority="high">
       </div>
     </section>
 
@@ -155,14 +157,14 @@
     <section id="gallery">
       <h2 class="section-title">Galerie</h2>
       <div class="gallery-grid">
-        <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop&q=80" alt="Plat gastronomique" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop&q=80" alt="Pizza artisanale" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&h=400&fit=crop&q=80" alt="Cocktail signature" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&h=400&fit=crop&q=80" alt="Dessert gourmand" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop&q=80" alt="Ambiance restaurant" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop&q=80" alt="Salade colorée" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=400&fit=crop&q=80" alt="Salade fraîche" loading="lazy">
-        <img src="https://images.unsplash.com/photo-1476124369491-b79e5ff2f1f7?w=400&h=400&fit=crop&q=80" alt="Risotto crémeux" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=400&fit=crop&q=80" alt="Fine dining culinary art" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1551218808-94e220e084d2?w=400&h=400&fit=crop&q=80" alt="Exquisite gastronomy" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&h=400&fit=crop&q=80" alt="Craft cocktails" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=400&fit=crop&q=80" alt="Decadent desserts" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1550966871-3ed3c6221741?w=400&h=400&fit=crop&q=80" alt="Elegant restaurant ambiance" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=400&fit=crop&q=80" alt="Fresh healthy bowls" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&h=400&fit=crop&q=80" alt="Fresh ingredients" loading="lazy" decoding="async">
+        <img src="https://images.unsplash.com/photo-1476124369491-b79e5ff2f1f7?w=400&h=400&fit=crop&q=80" alt="Creamy risotto" loading="lazy" decoding="async">
       </div>
     </section>
 
@@ -338,6 +340,16 @@
       <button class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</button>
       <button class="lightbox-nav lightbox-next" id="lightboxNext">›</button>
       <img id="lightboxImg" src="" alt="">
+    </div>
+  </div>
+
+  <!-- Modal Popup -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-icon" id="modalIcon"></div>
+      <h3 class="modal-title" id="modalTitle"></h3>
+      <p class="modal-message" id="modalMessage"></p>
+      <div class="modal-buttons" id="modalButtons"></div>
     </div>
   </div>
 

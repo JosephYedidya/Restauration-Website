@@ -1,11 +1,13 @@
 {
   "name": "Bistro Rive",
   "short_name": "Bistro Rive",
-  "description": "Cuisine contemporaine, livraison et réservation en ligne",
+  "description": "Restaurant Bistro Rive - Cuisine contemporaine, livraison et réservation en ligne. Commandez vos plats préférés et réservez votre table.",
   "start_url": "./index.html",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "background_color": "#0f1724",
   "theme_color": "#ff7a59",
+  "theme_color_light": "#ffb86b",
   "orientation": "portrait-primary",
   "scope": "./index.html",
   "lang": "fr",
@@ -24,10 +26,62 @@
       "purpose": "any"
     },
     {
+      "src": "icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Voir le Menu",
+      "short_name": "Menu",
+      "description": "Parcourir notre menu complet",
+      "url": "./index.html#menu",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Réserver une table",
+      "short_name": "Réserver",
+      "description": "Faire une réservation",
+      "url": "./index.html#reservation",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vue mobile du menu"
+    },
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vue desktop du restaurant"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "protocol_handlers": [
+    {
+      "protocol": "web+bistro",
+      "url": "./index.html?table=%s"
     }
   ]
 }

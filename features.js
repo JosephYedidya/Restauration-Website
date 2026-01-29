@@ -135,8 +135,8 @@ const sortManager = {
       case 'name':
         sortedMenu.sort((a, b) => a.title.localeCompare(b.title));
         break;
-      case 'rating':
-        sortedMenu.sort((a, b) => b.id - a.id);
+      case 'popular':
+        sortedMenu.sort((a, b) => b.price - a.price);
         break;
       default:
         sortedMenu = state.menu;
@@ -172,7 +172,9 @@ const reservationManager = {
     const guests = document.getElementById('resGuests').value;
     const message = document.getElementById('resMessage').value.trim();
 
-
+    // Vérifier que tous les champs obligatoires sont remplis
+    if (!name || !email || !phone || !date || !time || !guests) {
+      if (typeof cartManager !== 'undefined' && cartManager.showModal) {
         cartManager.showModal('Champs manquants', 'Veuillez remplir tous les champs obligatoires', 'warning');
       } else {
         alert('Veuillez remplir tous les champs obligatoires');
@@ -196,12 +198,13 @@ ${message ? `📝 Notes: ${message}` : ''}
 Merci pour votre réservation ! 🍽️
     `;
 
-
     document.getElementById('reservationForm').reset();
     if (typeof cartManager !== 'undefined' && cartManager.showToast) {
       cartManager.showToast('Réservation effectuée avec succès !', 'success');
     }
     console.log(reservationDetails);
+  }
+};
 
 
 // ========================================
